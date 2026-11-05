@@ -1114,6 +1114,8 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 
 let ctx = null;
 let audioResumePromise = null;
+let audioOutputGain = null;
+let audioUnlockOscillator = null;
 
 function getAudioContext() {
   if (ctx) return ctx;
@@ -1126,7 +1128,28 @@ function getAudioContext() {
     return null;
   }
 
+  if ("audioSession" in navigator) {
+    try {
+      navigator.audioSession.type = "playback";
+    } catch (error) {
+      console.warn("El navegador no permitió configurar la sesión de audio.", error);
+    }
+  }
+
   ctx = new AudioContextConstructor();
+  audioOutputGain = ctx.createGain();
+  audioOutputGain.gain.value = 0.72;
+  audioOutputGain.connect(ctx.destination);
+
+  const unlockGain = ctx.createGain();
+  unlockGain.gain.value = 0;
+  audioUnlockOscillator = ctx.createOscillator();
+  audioUnlockOscillator.type = "sine";
+  audioUnlockOscillator.frequency.value = 440;
+  audioUnlockOscillator.connect(unlockGain);
+  unlockGain.connect(audioOutputGain);
+  audioUnlockOscillator.start();
+
   return ctx;
 }
 
@@ -1157,17 +1180,6 @@ function unlockAudioContext() {
     return Promise.resolve(audioContext);
   }
 
-  try {
-    const silentBuffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
-    const source = audioContext.createBufferSource();
-    source.buffer = silentBuffer;
-    source.connect(audioContext.destination);
-    source.start(0);
-    source.disconnect();
-  } catch (error) {
-    console.warn("No se pudo preparar la salida de audio.", error);
-  }
-
   return resumeAudioContext();
 }
 
@@ -1184,7 +1196,7 @@ function scheduleTone() {
   osc.frequency.value=freq;
 
   osc.connect(gain);
-  gain.connect(audioContext.destination);
+  gain.connect(audioOutputGain);
 
   gain.gain.setValueAtTime(
     0.4,
@@ -1812,14 +1824,6 @@ async function startGame() {
   button.disabled = true;
   errorMessage.hidden = true;
   errorMessage.textContent = "";
-
-  if (navigator.audioSession) {
-    try {
-      navigator.audioSession.type = "playback";
-    } catch (error) {
-      console.warn("El navegador no permitió configurar la sesión de audio.", error);
-    }
-  }
 
   let audioContext;
   let audioResumeRequest;
