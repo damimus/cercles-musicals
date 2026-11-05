@@ -1837,19 +1837,21 @@ async function startGame() {
     return;
   }
 
-  let fullscreenRequest;
   try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-      fullscreenRequest = document.documentElement.requestFullscreen();
+      document.documentElement.requestFullscreen().catch(error => {
+        console.warn("El navegador no permitió activar la pantalla completa.", error);
+      });
     }
   } catch (error) {
     console.warn("El navegador no permitió activar la pantalla completa.", error);
   }
 
-  let orientationRequest;
   try {
     if (screen.orientation?.lock) {
-      orientationRequest = screen.orientation.lock("landscape");
+      screen.orientation.lock("landscape").catch(error => {
+        console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
+      });
     }
   } catch (error) {
     console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
@@ -1870,17 +1872,6 @@ async function startGame() {
   }
 
   overlay.hidden = true;
-
-  if (fullscreenRequest) {
-    fullscreenRequest.catch(error => {
-      console.warn("El navegador no permitió activar la pantalla completa.", error);
-    });
-  }
-  if (orientationRequest) {
-    orientationRequest.catch(error => {
-      console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
-    });
-  }
 }
 </script>
 
