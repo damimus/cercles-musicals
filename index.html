@@ -30,18 +30,32 @@ BARRA SUPERIOR
 .top-panel{
 
 display:flex;
-align-items:center;
-justify-content:center;
-flex-wrap:wrap;
-gap:12px;
 
-padding:12px;
+align-items:center;
+
+justify-content:flex-start;
+flex-wrap:nowrap;
+gap:clamp(2px, .75vw, 12px);
+
+padding:clamp(4px, 1vw, 12px);
 
 background:white;
 
 box-shadow:0 2px 15px rgba(0,0,0,.08);
 
 z-index:10;
+width:100%;
+overflow-x:auto;
+flex:0 0 auto;
+scrollbar-width:none;
+}
+
+.top-panel::-webkit-scrollbar{
+display:none;
+}
+
+.top-panel > *{
+flex:0 0 auto;
 }
 
 .separator{
@@ -666,6 +680,191 @@ width:90px;
       display:none;
     }
 
+    @media (max-width: 1200px) {
+      .top-panel {
+        flex-wrap:nowrap;
+        justify-content:flex-start;
+        gap:4px;
+        padding:5px;
+        overflow-x:auto;
+      }
+
+      .top-panel > * {
+        flex:0 0 auto;
+      }
+
+      .figure-btn {
+        width:36px;
+        height:36px;
+        border-radius:9px;
+        font-size:17px;
+      }
+
+      .color-btn {
+        width:27px;
+        height:27px;
+      }
+
+      .separator {
+        width:4px;
+        height:20px;
+      }
+
+      .play-control {
+        padding:5px 7px;
+        border-radius:9px;
+      }
+
+      #playBtn {
+        font-size:13px;
+      }
+
+      .metro-control {
+        gap:4px;
+        padding:5px;
+        border-radius:9px;
+      }
+
+      .metro-control button {
+        font-size:16px;
+      }
+
+      #tempo {
+        width:clamp(52px, 8vw, 72px);
+      }
+
+      #tempoValue {
+        min-width:24px;
+        font-size:12px;
+      }
+
+      .metro-sound-control {
+        gap:3px;
+        margin-left:0;
+      }
+
+      .metro-sound-btn {
+        min-width:44px;
+        height:28px;
+        padding:0 3px;
+        font-size:11px;
+      }
+
+      .edit-tools {
+        gap:3px;
+        margin-left:0;
+        padding-left:4px;
+      }
+
+      .edit-tool {
+        width:32px;
+        height:32px;
+        border-radius:7px;
+      }
+
+      .pencil-icon {
+        font-size:21px;
+      }
+
+      .eraser-icon {
+        width:19px;
+        height:14px;
+      }
+
+      .pads-toggle {
+        margin-left:0;
+      }
+
+      .pads-toggle-btn {
+        height:28px;
+        min-width:46px;
+        padding:0 4px;
+        font-size:11px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .top-panel {
+        gap:2px;
+        padding:4px;
+      }
+
+      .figure-btn {
+        width:30px;
+        height:30px;
+        font-size:15px;
+      }
+
+      .color-btn {
+        width:22px;
+        height:22px;
+      }
+
+      .play-control {
+        padding:4px 5px;
+      }
+
+      #playBtn {
+        font-size:11px;
+      }
+
+      .metro-control {
+        gap:3px;
+        padding:4px;
+      }
+
+      .metro-control button {
+        font-size:14px;
+      }
+
+      #tempo {
+        width:50px;
+      }
+
+      #tempoValue {
+        min-width:20px;
+        font-size:10px;
+      }
+
+      .metro-sound-btn {
+        min-width:39px;
+        height:25px;
+        font-size:10px;
+      }
+
+      .edit-tools {
+        gap:2px;
+        padding-left:3px;
+      }
+
+      .edit-tool {
+        width:27px;
+        height:27px;
+      }
+
+      .pencil-icon {
+        font-size:18px;
+      }
+
+      .eraser-icon {
+        width:17px;
+        height:12px;
+      }
+
+      .pads-toggle-btn {
+        height:25px;
+        min-width:40px;
+        font-size:10px;
+      }
+    }
+
+    @media (min-width: 601px) and (max-width: 700px) {
+      .top-panel {
+        gap:2px;
+        padding:4px;
+      }
+    }
+
     .start-overlay {
       position:fixed;
       inset:0;
@@ -676,8 +875,7 @@ width:90px;
       background:rgba(15,23,42,.72);
     }
 
-    .start-overlay[hidden],
-    .orientation-notice[hidden] {
+    .start-overlay[hidden] {
       display:none;
     }
 
@@ -717,20 +915,6 @@ width:90px;
       opacity:.7;
     }
 
-    .orientation-notice {
-      position:fixed;
-      z-index:50;
-      left:50%;
-      bottom:12px;
-      width:min(calc(100% - 24px), 520px);
-      padding:10px 14px;
-      border-radius:12px;
-      background:#172554;
-      color:white;
-      text-align:center;
-      transform:translateX(-50%);
-    }
-
     @media (orientation: portrait) and (any-pointer: coarse) {
       body {
         position:fixed;
@@ -764,7 +948,6 @@ width:90px;
     <button id="startButton" type="button">▶ Empezar</button>
   </section>
 </div>
-<div id="orientationNotice" class="orientation-notice" role="status" aria-live="polite" hidden></div>
 
 <!-- BARRA -->
 
@@ -1524,40 +1707,26 @@ document.getElementById("startButton").addEventListener("click", startGame);
 async function startGame() {
   const button = document.getElementById("startButton");
   const overlay = document.getElementById("startOverlay");
-  const notice = document.getElementById("orientationNotice");
-  const limitations = [];
 
   button.disabled = true;
 
   try {
-    if (!document.documentElement.requestFullscreen) {
-      limitations.push("pantalla completa");
-    } else if (!document.fullscreenElement) {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
       await document.documentElement.requestFullscreen();
     }
   } catch (error) {
     console.warn("El navegador no permitió activar la pantalla completa.", error);
-    limitations.push("pantalla completa");
   }
 
   try {
-    if (!screen.orientation?.lock) {
-      limitations.push("orientación horizontal");
-    } else {
+    if (screen.orientation?.lock) {
       await screen.orientation.lock("landscape");
     }
   } catch (error) {
     console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
-    limitations.push("orientación horizontal");
   }
 
   overlay.hidden = true;
-  if (limitations.length) {
-    notice.textContent =
-      "Este navegador no permite solicitar " + limitations.join(" ni ") +
-      ". El juego seguirá en horizontal; gira el dispositivo si hace falta.";
-    notice.hidden = false;
-  }
 }
 </script>
 
