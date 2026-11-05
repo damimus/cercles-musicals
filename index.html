@@ -1122,8 +1122,6 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 /* AUDIO */
 
 const AUDIO_POOL_SIZE = 3;
-const useNativeAudio = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const audioFiles = {
   low: "audio/low.wav",
   high: "audio/high.wav",
@@ -1232,6 +1230,11 @@ async function prepareLowLatencyAudio() {
     const resumeRequest = audioContext.state === "running"
       ? Promise.resolve()
       : audioContext.resume();
+    const unlockBuffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+    const unlockSource = audioContext.createBufferSource();
+    unlockSource.buffer = unlockBuffer;
+    unlockSource.connect(audioOutput);
+    unlockSource.start();
     const encodedSounds = await audioDataPromise;
     await resumeRequest;
     if (!encodedSounds || audioContext.state !== "running") return false;
@@ -1267,7 +1270,7 @@ function playBufferedSound(name) {
 }
 
 function playAudioFile(name) {
-  if (!useNativeAudio && playBufferedSound(name)) return;
+  if (playBufferedSound(name)) return;
 
   const players = audioPlayers[name];
   if (!players) return;
@@ -1910,9 +1913,7 @@ async function startGame() {
   button.disabled = true;
   button.textContent = "Preparando sonidos…";
   primeAudioPlayers();
-  const audioReady = useNativeAudio
-    ? Promise.resolve(false)
-    : prepareLowLatencyAudio();
+  const audioReady = prepareLowLatencyAudio();
 
   try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
