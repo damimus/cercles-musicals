@@ -181,6 +181,8 @@ ZONA JUEGO
 
 flex:1;
 
+min-width:0;
+
 display:flex;
 
 justify-content:center;
@@ -195,6 +197,8 @@ background:#F5FAFF;
 .exercise-card{
 
 width:98%;
+
+min-width:0;
 
 max-width:1600px;
 
@@ -218,15 +222,19 @@ padding:20px;
 
 .sequence{
 
-display:flex;
+display:grid;
+
+grid-template-columns:repeat(8, minmax(0, 1fr));
 
 justify-content:center;
 
 align-items:center;
 
-gap:22px;
+gap:clamp(2px, 1.5vw, 22px);
 
 width:100%;
+
+min-width:0;
 }
 
 /* =======================
@@ -235,8 +243,14 @@ NOTAS
 
 .note{
 
-width:130px;
-height:130px;
+width:100%;
+max-width:130px;
+height:auto;
+aspect-ratio:1;
+
+min-width:0;
+
+justify-self:center;
 
 border-radius:50%;
 
@@ -251,7 +265,6 @@ box-shadow:
 
 animation:pop .25s ease;
 
-flex-shrink:0;
 }
 
 @keyframes pop{
@@ -394,8 +407,7 @@ RESPONSIVE
 @media(max-width:1200px){
 
 .note{
-width:100px;
-height:100px;
+max-width:100px;
 }
 
 .sequence{
@@ -411,8 +423,7 @@ height:220px;
 }
 
 .note{
-width:70px;
-height:70px;
+max-width:70px;
 }
 
 .sequence{
