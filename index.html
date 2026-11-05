@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Juego de Ritmo</title>
-<link rel="preload" href="audio/low.wav" as="fetch" crossorigin>
-<link rel="preload" href="audio/high.wav" as="fetch" crossorigin>
-<link rel="preload" href="audio/metronome.wav" as="fetch" crossorigin>
+<link rel="preload" href="audio/low.wav" as="audio">
+<link rel="preload" href="audio/high.wav" as="audio">
+<link rel="preload" href="audio/metronome.wav" as="audio">
 
 <style>
 
@@ -1122,6 +1122,7 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 /* AUDIO */
 
 const AUDIO_POOL_SIZE = 3;
+const toneFrequencies = { low: 130.81, high: 261.63, metronome: 1046.5 };
 const audioFiles = {
   low: "audio/low.wav",
   high: "audio/high.wav",
@@ -1129,23 +1130,13 @@ const audioFiles = {
 };
 let audioContext = null;
 let audioOutput = null;
-let decodedSounds = null;
+let toneVoices = null;
 const audioPlayers = {
   low: createAudioPool(audioFiles.low),
   high: createAudioPool(audioFiles.high),
   metronome: createAudioPool(audioFiles.metronome)
 };
 const audioPlayerIndexes = { low: 0, high: 0, metronome: 0 };
-const audioDataPromise = Promise.all(
-  Object.entries(audioFiles).map(async ([name, url]) => {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`No se pudo cargar ${url}: ${response.status}`);
-    return [name, await response.arrayBuffer()];
-  })
-).catch(error => {
-  console.warn("No se pudieron precargar los sonidos; se usará la reproducción nativa.", error);
-  return null;
-});
 
 function createAudioPool(source) {
   return Array.from({ length: AUDIO_POOL_SIZE }, () => {
@@ -1230,48 +1221,62 @@ async function prepareLowLatencyAudio() {
     const resumeRequest = audioContext.state === "running"
       ? Promise.resolve()
       : audioContext.resume();
-    const unlockBuffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
-    const unlockSource = audioContext.createBufferSource();
-    unlockSource.buffer = unlockBuffer;
-    unlockSource.connect(audioOutput);
-    unlockSource.start();
-    const encodedSounds = await audioDataPromise;
-    await resumeRequest;
-    if (!encodedSounds || audioContext.state !== "running") return false;
+    if (!toneVoices) {
+      toneVoices = Object.fromEntries(Object.entries(toneFrequencies).map(([name, frequency]) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "triangle";
+        oscillator.frequency.value = frequency;
+        gain.gain.value = 0.0001;
+        oscillator.connect(gain);
+        gain.connect(audioOutput);
+        oscillator.start();
+        return [name, { oscillator, gain }];
+      }));
+    }
 
-    const sounds = await Promise.all(encodedSounds.map(async ([name, data]) => [
-      name,
-      await audioContext.decodeAudioData(data.slice(0))
-    ]));
-    decodedSounds = Object.fromEntries(sounds);
-    return true;
+    await resumeRequest;
+    return audioContext.state === "running";
   } catch (error) {
     console.warn("No se pudo preparar el audio de baja latencia; se usará el audio nativo.", error);
     return false;
   }
 }
 
-function playBufferedSound(name) {
-  if (!audioContext || audioContext.state !== "running" || !decodedSounds?.[name]) {
-    return false;
-  }
-
+function playTone(name) {
+  const voice = toneVoices?.[name];
+  if (!audioContext || !voice) return playAudioFile(name);
   try {
-    const source = audioContext.createBufferSource();
-    source.buffer = decodedSounds[name];
-    source.connect(audioOutput);
-    source.start();
-    document.getElementById("audioPlaybackError").hidden = true;
+    if (audioContext.state !== "running") {
+      audioContext.resume().then(() => {
+        if (audioContext.state === "running") scheduleTone(voice, name);
+        else playAudioFile(name);
+      }).catch(error => {
+        console.warn("No se pudo reanudar el audio; se usará el reproductor nativo.", error);
+        playAudioFile(name);
+      });
+      return false;
+    }
+    scheduleTone(voice, name);
     return true;
   } catch (error) {
-    console.warn("No se pudo reproducir el buffer de audio.", error);
-    return false;
+    console.warn("No se pudo reproducir el tono; se usará el reproductor nativo.", error);
+    return playAudioFile(name);
   }
 }
 
-function playAudioFile(name) {
-  if (playBufferedSound(name)) return;
+function scheduleTone(voice, name) {
+  const now = audioContext.currentTime;
+  const gain = voice.gain.gain;
+  const duration = name === "metronome" ? 0.055 : 0.18;
 
+  gain.cancelScheduledValues(now);
+  gain.setValueAtTime(Math.max(gain.value, 0.0001), now);
+  gain.linearRampToValueAtTime(0.5, now + 0.003);
+  gain.exponentialRampToValueAtTime(0.0001, now + duration);
+}
+
+function playAudioFile(name) {
   const players = audioPlayers[name];
   if (!players) return;
 
@@ -1302,16 +1307,16 @@ function playAudioFile(name) {
 }
 
 function playLow(){
-playAudioFile("low");
+playTone("low");
 }
 
 function playHigh(){
-playAudioFile("high");
+playTone("high");
 }
 
 function metronomeClick(){
   if (metronomeSoundEnabled) {
-    playAudioFile("metronome");
+    playTone("metronome");
   }
 }
 
