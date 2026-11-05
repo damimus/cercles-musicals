@@ -1130,6 +1130,7 @@ const audioFiles = {
 };
 let audioContext = null;
 let audioOutput = null;
+let audioMasterGain = null;
 let toneVoices = null;
 const audioPlayers = {
   low: createAudioPool(audioFiles.low),
@@ -1206,8 +1207,11 @@ async function prepareLowLatencyAudio() {
     if (!audioContext) {
       audioContext = new AudioContextConstructor();
       audioOutput = audioContext.createGain();
-      audioOutput.gain.value = 0.8;
+      audioOutput.gain.value = 0.72;
       audioOutput.connect(audioContext.destination);
+      audioMasterGain = audioContext.createGain();
+      audioMasterGain.gain.value = 0.0001;
+      audioMasterGain.connect(audioOutput);
     }
 
     if ("audioSession" in navigator) {
@@ -1225,14 +1229,38 @@ async function prepareLowLatencyAudio() {
       toneVoices = Object.fromEntries(Object.entries(toneFrequencies).map(([name, frequency]) => {
         const oscillator = audioContext.createOscillator();
         const gain = audioContext.createGain();
-        oscillator.type = "triangle";
+        oscillator.type = "sine";
         oscillator.frequency.value = frequency;
-        gain.gain.value = 0.0001;
+        gain.gain.value = 0;
         oscillator.connect(gain);
-        gain.connect(audioOutput);
+        gain.connect(audioMasterGain);
         oscillator.start();
         return [name, { oscillator, gain }];
       }));
+
+      const noiseBuffer = audioContext.createBuffer(
+        1,
+        audioContext.sampleRate * 2,
+        audioContext.sampleRate
+      );
+      const noiseData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = audioContext.createBufferSource();
+      noise.buffer = noiseBuffer;
+      noise.loop = true;
+      const noiseFilter = audioContext.createBiquadFilter();
+      noiseFilter.type = "bandpass";
+      noiseFilter.frequency.value = 2200;
+      noiseFilter.Q.value = 0.7;
+      const noiseGain = audioContext.createGain();
+      noiseGain.gain.value = 0.003;
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(audioMasterGain);
+      noise.start();
     }
 
     await resumeRequest;
@@ -1270,10 +1298,14 @@ function scheduleTone(voice, name) {
   const gain = voice.gain.gain;
   const duration = name === "metronome" ? 0.055 : 0.18;
 
+  audioMasterGain.gain.cancelScheduledValues(now);
+  audioMasterGain.gain.setTargetAtTime(0.15, now, 0.015);
+  audioMasterGain.gain.setTargetAtTime(0.0001, now + duration, 0.025);
+
   gain.cancelScheduledValues(now);
   gain.setValueAtTime(Math.max(gain.value, 0.0001), now);
-  gain.linearRampToValueAtTime(0.5, now + 0.003);
-  gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  gain.setTargetAtTime(0.65, now, 0.003);
+  gain.setTargetAtTime(0.0001, now + duration, 0.025);
 }
 
 function playAudioFile(name) {
@@ -1917,7 +1949,6 @@ async function startGame() {
   const button = document.getElementById("startButton");
   button.disabled = true;
   button.textContent = "Preparando sonidos…";
-  primeAudioPlayers();
   const audioReady = prepareLowLatencyAudio();
 
   try {
@@ -1940,7 +1971,7 @@ async function startGame() {
     console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
   }
 
-  await audioReady;
+  if (!await audioReady) primeAudioPlayers();
   overlay.hidden = true;
 }
 </script>
