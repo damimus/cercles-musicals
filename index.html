@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Juego de Ritmo</title>
+<link rel="preload" href="audio/low.wav" as="fetch" crossorigin>
+<link rel="preload" href="audio/high.wav" as="fetch" crossorigin>
+<link rel="preload" href="audio/metronome.wav" as="fetch" crossorigin>
 
 <style>
 
@@ -1119,12 +1122,30 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 /* AUDIO */
 
 const AUDIO_POOL_SIZE = 3;
+const audioFiles = {
+  low: "audio/low.wav",
+  high: "audio/high.wav",
+  metronome: "audio/metronome.wav"
+};
+let audioContext = null;
+let audioOutput = null;
+let decodedSounds = null;
 const audioPlayers = {
-  low: createAudioPool("audio/low.wav"),
-  high: createAudioPool("audio/high.wav"),
-  metronome: createAudioPool("audio/metronome.wav")
+  low: createAudioPool(audioFiles.low),
+  high: createAudioPool(audioFiles.high),
+  metronome: createAudioPool(audioFiles.metronome)
 };
 const audioPlayerIndexes = { low: 0, high: 0, metronome: 0 };
+const audioDataPromise = Promise.all(
+  Object.entries(audioFiles).map(async ([name, url]) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`No se pudo cargar ${url}: ${response.status}`);
+    return [name, await response.arrayBuffer()];
+  })
+).catch(error => {
+  console.warn("No se pudieron precargar los sonidos; se usará la reproducción nativa.", error);
+  return null;
+});
 
 function createAudioPool(source) {
   return Array.from({ length: AUDIO_POOL_SIZE }, () => {
@@ -1186,7 +1207,66 @@ function showAudioPlaybackError(error) {
   message.hidden = false;
 }
 
+async function prepareLowLatencyAudio() {
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) return false;
+
+  try {
+    if (!audioContext) {
+      audioContext = new AudioContextConstructor();
+      audioOutput = audioContext.createGain();
+      audioOutput.gain.value = 0.8;
+      audioOutput.connect(audioContext.destination);
+    }
+
+    if ("audioSession" in navigator) {
+      try {
+        navigator.audioSession.type = "playback";
+      } catch (error) {
+        console.warn("El navegador no permitió configurar la sesión de audio.", error);
+      }
+    }
+
+    const resumeRequest = audioContext.state === "running"
+      ? Promise.resolve()
+      : audioContext.resume();
+    const encodedSounds = await audioDataPromise;
+    await resumeRequest;
+    if (!encodedSounds || audioContext.state !== "running") return false;
+
+    const sounds = await Promise.all(encodedSounds.map(async ([name, data]) => [
+      name,
+      await audioContext.decodeAudioData(data.slice(0))
+    ]));
+    decodedSounds = Object.fromEntries(sounds);
+    return true;
+  } catch (error) {
+    console.warn("No se pudo preparar el audio de baja latencia; se usará el audio nativo.", error);
+    return false;
+  }
+}
+
+function playBufferedSound(name) {
+  if (!audioContext || audioContext.state !== "running" || !decodedSounds?.[name]) {
+    return false;
+  }
+
+  try {
+    const source = audioContext.createBufferSource();
+    source.buffer = decodedSounds[name];
+    source.connect(audioOutput);
+    source.start();
+    document.getElementById("audioPlaybackError").hidden = true;
+    return true;
+  } catch (error) {
+    console.warn("No se pudo reproducir el buffer de audio.", error);
+    return false;
+  }
+}
+
 function playAudioFile(name) {
+  if (playBufferedSound(name)) return;
+
   const players = audioPlayers[name];
   if (!players) return;
 
@@ -1258,6 +1338,7 @@ function toggleMetronomeSound() {
 /* METRONOMO */
 
 let metro=null;
+let metroIsPlaybackSynced = false;
 
 
 function updateMetronomeButton() {
@@ -1275,12 +1356,17 @@ function updateMetronomeButton() {
 
 function toggleMetronome() {
   if (metro) {
-    clearInterval(metro);
+    if (!metroIsPlaybackSynced) clearInterval(metro);
     metro = null;
+    metroIsPlaybackSynced = false;
+  } else if (isPlaying) {
+    metro = "playback";
+    metroIsPlaybackSynced = true;
   } else {
     const interval = 60000 / Number(document.getElementById("tempo").value);
     metronomeClick();
     metro = setInterval(metronomeClick, interval);
+    metroIsPlaybackSynced = false;
   }
 
   updateMetronomeButton();
@@ -1301,6 +1387,7 @@ function playCircle(i){
  if(i>=notes.length)i=0;
  const note=notes[i], colors=colorsOf(note), partMs=beatMs()/colors.length;
  note.classList.add("playing");
+ if(isPlaying && metroIsPlaybackSynced) metronomeClick();
  let k=0;
  function part(){
    if(!isPlaying)return;
@@ -1331,7 +1418,10 @@ function startPlayback(){
  if(isPlaying)return;
  isPlaying=true; playbackIndex=0;
  const b=document.getElementById("playBtn"); b.textContent="■ Stop"; b.classList.add("playing");
- if(!metro)metro=setInterval(metronomeClick,beatMs());
+ if(metro && !metroIsPlaybackSynced) clearInterval(metro);
+ metro="playback";
+ metroIsPlaybackSynced=true;
+ updateMetronomeButton();
  playCircle(0); nextCircle();
 }
 
@@ -1342,14 +1432,16 @@ function stopPlayback(){
  playbackTimer=null; subdivisionTimer=null;
  document.querySelectorAll(".note").forEach(n=>n.classList.remove("playing","part-glow"));
  const b=document.getElementById("playBtn"); b.textContent="▶ Play"; b.classList.remove("playing");
- if(metro){clearInterval(metro);metro=null;}
+ if(metroIsPlaybackSynced){metro=null;metroIsPlaybackSynced=false;}
+ else if(metro){clearInterval(metro);metro=null;}
+ updateMetronomeButton();
 }
 
 function togglePlayback(){if(isPlaying)stopPlayback();else startPlayback();}
 
 document.getElementById("tempo").addEventListener("input",function(){
  document.getElementById("tempoValue").textContent=this.value;
- if(metro){clearInterval(metro);metro=setInterval(metronomeClick,beatMs());}
+ if(metro && !metroIsPlaybackSynced){clearInterval(metro);metro=setInterval(metronomeClick,beatMs());}
  if(isPlaying){
    if(playbackTimer)clearTimeout(playbackTimer);
    if(subdivisionTimer)clearTimeout(subdivisionTimer);
@@ -1810,9 +1902,13 @@ updateMetronomeButton();
 
 document.getElementById("startButton").addEventListener("click", startGame);
 
-function startGame() {
+async function startGame() {
   const overlay = document.getElementById("startOverlay");
+  const button = document.getElementById("startButton");
+  button.disabled = true;
+  button.textContent = "Preparando sonidos…";
   primeAudioPlayers();
+  const audioReady = prepareLowLatencyAudio();
 
   try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -1834,6 +1930,7 @@ function startGame() {
     console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
   }
 
+  await audioReady;
   overlay.hidden = true;
 }
 </script>
