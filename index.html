@@ -196,6 +196,7 @@ ZONA JUEGO
 flex:1;
 
 min-width:0;
+min-height:0;
 
 display:flex;
 
@@ -213,6 +214,7 @@ background:#F5FAFF;
 width:98%;
 
 min-width:0;
+min-height:0;
 
 max-width:1600px;
 
@@ -341,6 +343,8 @@ gap:90px;
 
 padding:20px;
 
+flex:0 0 auto;
+
 }
 
 .pad-panel{
@@ -366,9 +370,13 @@ align-items:center;
 width:140px;
 height:140px;
 
+padding:0;
+border:0;
 border-radius:50%;
 
+appearance:none;
 cursor:pointer;
+touch-action:manipulation;
 
 transition:.15s;
 }
@@ -433,7 +441,10 @@ gap:12px;
 @media(max-width:900px){
 
 .exercise-card{
-height:220px;
+height:min(220px, 100%);
+max-height:100%;
+padding:clamp(8px, 2vmin, 20px);
+border-radius:clamp(16px, 4vmin, 35px);
 }
 
 .note{
@@ -445,12 +456,27 @@ gap:6px;
 }
 
 .pad{
-width:100px;
-height:100px;
+width:min(18vmin, 100px);
+height:min(18vmin, 100px);
 }
 
 .bottom-panel{
-gap:30px;
+gap:clamp(8px, 3vmin, 30px);
+padding:clamp(4px, 1.5vmin, 12px);
+}
+
+.pad-panel{
+padding:clamp(4px, 1.8vmin, 12px);
+border-radius:clamp(12px, 3vmin, 24px);
+}
+
+.label{
+margin-top:clamp(4px, 1.5vmin, 10px);
+font-size:clamp(11px, 3vmin, 16px);
+}
+
+.main-panel{
+padding:clamp(4px, 1.2vmin, 12px);
 }
 
 #tempo{
@@ -898,6 +924,11 @@ width:90px;
       line-height:1.5;
     }
 
+    #audioStartError {
+      color:#b91c1c;
+      font-weight:600;
+    }
+
     #startButton {
       margin-top:20px;
       padding:14px 22px;
@@ -945,6 +976,7 @@ width:90px;
     <h1 id="startTitle">Juego listo</h1>
     <p>En móviles, el juego se mostrará en horizontal.</p>
     <p>Por seguridad, el navegador solo permite solicitar pantalla completa y orientación al tocar el botón.</p>
+    <p id="audioStartError" role="alert" hidden></p>
     <button id="startButton" type="button">▶ Empezar</button>
   </section>
 </div>
@@ -1054,9 +1086,8 @@ class="sequence">
 
 <div class="pad-panel">
 
-<div class="pad red-pad"
-onclick="playLow()">
-</div>
+<button class="pad red-pad" type="button"
+onclick="playLow()" aria-label="Reproducir sonido grave"></button>
 
 <div class="label">
 🔴 Grave
@@ -1066,9 +1097,8 @@ onclick="playLow()">
 
 <div class="pad-panel">
 
-<div class="pad blue-pad"
-onclick="playHigh()">
-</div>
+<button class="pad blue-pad" type="button"
+onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 
 <div class="label">
 🔵 Agudo
@@ -1121,6 +1151,26 @@ function resumeAudioContext() {
   return audioResumePromise;
 }
 
+function unlockAudioContext() {
+  const audioContext = getAudioContext();
+  if (!audioContext || audioContext.state === "running") {
+    return Promise.resolve(audioContext);
+  }
+
+  try {
+    const silentBuffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+    const source = audioContext.createBufferSource();
+    source.buffer = silentBuffer;
+    source.connect(audioContext.destination);
+    source.start(0);
+    source.disconnect();
+  } catch (error) {
+    console.warn("No se pudo preparar la salida de audio.", error);
+  }
+
+  return resumeAudioContext();
+}
+
 function playTone(freq,duration=0.15){
 
 const audioContext = getAudioContext();
@@ -1153,7 +1203,7 @@ function scheduleTone() {
 if (audioContext.state === "running") {
   scheduleTone();
 } else {
-  resumeAudioContext().then(resumedContext => {
+  unlockAudioContext().then(resumedContext => {
     if (resumedContext === audioContext && audioContext.state === "running") {
       scheduleTone();
     }
@@ -1757,27 +1807,80 @@ document.getElementById("startButton").addEventListener("click", startGame);
 async function startGame() {
   const button = document.getElementById("startButton");
   const overlay = document.getElementById("startOverlay");
-  resumeAudioContext();
+  const errorMessage = document.getElementById("audioStartError");
 
   button.disabled = true;
+  errorMessage.hidden = true;
+  errorMessage.textContent = "";
 
+  if (navigator.audioSession) {
+    try {
+      navigator.audioSession.type = "playback";
+    } catch (error) {
+      console.warn("El navegador no permitió configurar la sesión de audio.", error);
+    }
+  }
+
+  let audioContext;
+  let audioResumeRequest;
+  try {
+    audioContext = getAudioContext();
+    if (!audioContext) throw new Error("Web Audio no está disponible.");
+
+    audioResumeRequest = unlockAudioContext();
+  } catch (error) {
+    console.warn("No se pudo iniciar el audio del juego.", error);
+    errorMessage.textContent =
+      "No se pudo activar el sonido. Comprueba el modo silencio del iPhone y vuelve a tocar «Empezar».";
+    errorMessage.hidden = false;
+    button.disabled = false;
+    return;
+  }
+
+  let fullscreenRequest;
   try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
+      fullscreenRequest = document.documentElement.requestFullscreen();
     }
   } catch (error) {
     console.warn("El navegador no permitió activar la pantalla completa.", error);
   }
 
+  let orientationRequest;
   try {
     if (screen.orientation?.lock) {
-      await screen.orientation.lock("landscape");
+      orientationRequest = screen.orientation.lock("landscape");
     }
   } catch (error) {
     console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
   }
 
+  try {
+    await audioResumeRequest;
+    if (audioContext.state !== "running") {
+      throw new Error("El audio sigue suspendido.");
+    }
+  } catch (error) {
+    console.warn("No se pudo iniciar el audio del juego.", error);
+    errorMessage.textContent =
+      "No se pudo activar el sonido. Comprueba el modo silencio del iPhone y vuelve a tocar «Empezar».";
+    errorMessage.hidden = false;
+    button.disabled = false;
+    return;
+  }
+
   overlay.hidden = true;
+
+  if (fullscreenRequest) {
+    fullscreenRequest.catch(error => {
+      console.warn("El navegador no permitió activar la pantalla completa.", error);
+    });
+  }
+  if (orientationRequest) {
+    orientationRequest.catch(error => {
+      console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
+    });
+  }
 }
 </script>
 
