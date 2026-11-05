@@ -914,6 +914,21 @@ width:90px;
       text-align:center;
     }
 
+    #audioPlaybackError {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: max(8px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      max-width: calc(100vw - 24px);
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #7a1f1f;
+      color: #fff;
+      font: 14px/1.35 sans-serif;
+      text-align: center;
+    }
+
     .start-card h1 {
       margin-bottom:12px;
       font-size:clamp(24px, 5vw, 32px);
@@ -922,11 +937,6 @@ width:90px;
     .start-card p {
       margin-top:10px;
       line-height:1.5;
-    }
-
-    #audioStartError {
-      color:#b91c1c;
-      font-weight:600;
     }
 
     #startButton {
@@ -939,11 +949,6 @@ width:90px;
       font-size:18px;
       font-weight:700;
       cursor:pointer;
-    }
-
-    #startButton:disabled {
-      cursor:wait;
-      opacity:.7;
     }
 
     @media (orientation: portrait) and (any-pointer: coarse) {
@@ -976,10 +981,11 @@ width:90px;
     <h1 id="startTitle">Juego listo</h1>
     <p>En móviles, el juego se mostrará en horizontal.</p>
     <p>Por seguridad, el navegador solo permite solicitar pantalla completa y orientación al tocar el botón.</p>
-    <p id="audioStartError" role="alert" hidden></p>
     <button id="startButton" type="button">▶ Empezar</button>
   </section>
 </div>
+
+<div id="audioPlaybackError" role="status" aria-live="polite" hidden></div>
 
 <!-- BARRA -->
 
@@ -1112,23 +1118,25 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 
 /* AUDIO */
 
-let ctx = null;
-let audioResumePromise = null;
-let audioOutputGain = null;
-let audioToneOscillator = null;
-let audioToneGain = null;
+const AUDIO_POOL_SIZE = 3;
+const audioPlayers = {
+  low: createAudioPool("audio/low.wav"),
+  high: createAudioPool("audio/high.wav"),
+  metronome: createAudioPool("audio/metronome.wav")
+};
+const audioPlayerIndexes = { low: 0, high: 0, metronome: 0 };
 
-function getAudioContext() {
-  if (ctx) return ctx;
+function createAudioPool(source) {
+  return Array.from({ length: AUDIO_POOL_SIZE }, () => {
+    const audio = new Audio(source);
+    audio.preload = "auto";
+    audio.playsInline = true;
+    audio.volume = 0.8;
+    return audio;
+  });
+}
 
-  const AudioContextConstructor =
-    window.AudioContext || window.webkitAudioContext;
-
-  if (!AudioContextConstructor) {
-    console.warn("Este navegador no admite Web Audio.");
-    return null;
-  }
-
+function primeAudioPlayers() {
   if ("audioSession" in navigator) {
     try {
       navigator.audioSession.type = "playback";
@@ -1137,91 +1145,78 @@ function getAudioContext() {
     }
   }
 
-  ctx = new AudioContextConstructor();
-  audioOutputGain = ctx.createGain();
-  audioOutputGain.gain.value = 0.72;
-  audioOutputGain.connect(ctx.destination);
-
-  audioToneOscillator = ctx.createOscillator();
-  audioToneOscillator.type = "triangle";
-  audioToneOscillator.frequency.value = 440;
-  audioToneGain = ctx.createGain();
-  audioToneGain.gain.value = 0;
-  audioToneOscillator.connect(audioToneGain);
-  audioToneGain.connect(audioOutputGain);
-  audioToneOscillator.start();
-
-  return ctx;
-}
-
-function resumeAudioContext() {
-  const audioContext = getAudioContext();
-  if (!audioContext || audioContext.state === "running") {
-    return Promise.resolve(audioContext);
-  }
-
-  if (!audioResumePromise) {
-    audioResumePromise = audioContext.resume()
-      .then(() => audioContext)
-      .catch(error => {
-        console.warn("El navegador no permitió activar el sonido.", error);
-        return null;
-      })
-      .finally(() => {
-        audioResumePromise = null;
-      });
-  }
-
-  return audioResumePromise;
-}
-
-function unlockAudioContext() {
-  const audioContext = getAudioContext();
-  if (!audioContext || audioContext.state === "running") {
-    return Promise.resolve(audioContext);
-  }
-
-  return resumeAudioContext();
-}
-
-function playTone(freq,duration=0.15){
-
-const audioContext = getAudioContext();
-if (!audioContext || !audioToneOscillator || !audioToneGain) return;
-
-if (audioContext.state === "running") {
-  scheduleTone(freq, duration);
-} else {
-  unlockAudioContext().then(resumedContext => {
-    if (resumedContext === audioContext && audioContext.state === "running") {
-      scheduleTone(freq, duration);
+  Object.values(audioPlayers).flat().forEach(audio => {
+    audio.muted = true;
+    let request;
+    try {
+      request = audio.play();
+    } catch (error) {
+      audio.muted = false;
+      console.warn("No se pudo preparar un archivo de sonido.", error);
+      return;
     }
+
+    if (!request || typeof request.then !== "function") {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+      return;
+    }
+
+    request.then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+    }).catch(error => {
+      audio.muted = false;
+      if (error.name !== "NotAllowedError" && error.name !== "AbortError") {
+        console.warn("No se pudo preparar un archivo de sonido.", error);
+      }
+    });
   });
 }
+
+function showAudioPlaybackError(error) {
+  console.warn("Safari no pudo reproducir el archivo de sonido.", error);
+  const message = document.getElementById("audioPlaybackError");
+  message.textContent = "No se pudo reproducir el sonido. Toca de nuevo Play o el pad.";
+  message.hidden = false;
 }
 
-function scheduleTone(freq, duration) {
-  const now = ctx.currentTime;
-  const gain = audioToneGain.gain;
+function playAudioFile(name) {
+  const players = audioPlayers[name];
+  if (!players) return;
 
-  audioToneOscillator.frequency.setValueAtTime(freq, now);
-  gain.cancelScheduledValues(now);
-  gain.setValueAtTime(Math.max(gain.value, 0.001), now);
-  gain.exponentialRampToValueAtTime(0.4, now + 0.005);
-  gain.exponentialRampToValueAtTime(0.001, now + duration);
+  const index = audioPlayerIndexes[name]++ % players.length;
+  const audio = players[index];
+
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+    const request = audio.play();
+    if (request && typeof request.then === "function") {
+      request.then(() => {
+        document.getElementById("audioPlaybackError").hidden = true;
+      }).catch(error => {
+        if (error.name !== "AbortError") showAudioPlaybackError(error);
+      });
+    }
+  } catch (error) {
+    showAudioPlaybackError(error);
+  }
 }
 
 function playLow(){
-playTone(120);
+playAudioFile("low");
 }
 
 function playHigh(){
-playTone(550);
+playAudioFile("high");
 }
 
 function metronomeClick(){
   if (metronomeSoundEnabled) {
-    playTone(1400,0.04);
+    playAudioFile("metronome");
   }
 }
 
@@ -1273,16 +1268,9 @@ function toggleMetronome() {
     clearInterval(metro);
     metro = null;
   } else {
-    const audioContext = getAudioContext();
-    if (!audioContext) return;
-
-    resumeAudioContext().then(resumedContext => {
-      if (resumedContext !== audioContext || audioContext.state !== "running" || metro) return;
-      const interval = 60000 / Number(document.getElementById("tempo").value);
-      metronomeClick();
-      metro = setInterval(metronomeClick, interval);
-      updateMetronomeButton();
-    });
+    const interval = 60000 / Number(document.getElementById("tempo").value);
+    metronomeClick();
+    metro = setInterval(metronomeClick, interval);
   }
 
   updateMetronomeButton();
@@ -1327,17 +1315,9 @@ function nextCircle(){
  },beatMs());
 }
 
-async function startPlayback(){
+function startPlayback(){
  if(isPlaying)return;
  const n=document.querySelectorAll(".note"); if(!n.length)return;
- const audioContext=getAudioContext(); if(!audioContext)return;
- try {
-   await resumeAudioContext();
-   if(audioContext.state!=="running")throw new Error("El audio sigue suspendido.");
- } catch(error) {
-   console.warn("No se pudo reanudar el audio de la reproducción.",error);
-   return;
- }
  if(isPlaying)return;
  isPlaying=true; playbackIndex=0;
  const b=document.getElementById("playBtn"); b.textContent="■ Stop"; b.classList.add("playing");
@@ -1820,30 +1800,9 @@ updateMetronomeButton();
 
 document.getElementById("startButton").addEventListener("click", startGame);
 
-async function startGame() {
-  const button = document.getElementById("startButton");
+function startGame() {
   const overlay = document.getElementById("startOverlay");
-  const errorMessage = document.getElementById("audioStartError");
-
-  button.disabled = true;
-  errorMessage.hidden = true;
-  errorMessage.textContent = "";
-
-  let audioContext;
-  let audioResumeRequest;
-  try {
-    audioContext = getAudioContext();
-    if (!audioContext) throw new Error("Web Audio no está disponible.");
-
-    audioResumeRequest = unlockAudioContext();
-  } catch (error) {
-    console.warn("No se pudo iniciar el audio del juego.", error);
-    errorMessage.textContent =
-      "No se pudo activar el sonido. Comprueba el modo silencio del iPhone y vuelve a tocar «Empezar».";
-    errorMessage.hidden = false;
-    button.disabled = false;
-    return;
-  }
+  primeAudioPlayers();
 
   try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -1863,20 +1822,6 @@ async function startGame() {
     }
   } catch (error) {
     console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
-  }
-
-  try {
-    await audioResumeRequest;
-    if (audioContext.state !== "running") {
-      throw new Error("El audio sigue suspendido.");
-    }
-  } catch (error) {
-    console.warn("No se pudo iniciar el audio del juego.", error);
-    errorMessage.textContent =
-      "No se pudo activar el sonido. Comprueba el modo silencio del iPhone y vuelve a tocar «Empezar».";
-    errorMessage.hidden = false;
-    button.disabled = false;
-    return;
   }
 
   overlay.hidden = true;
