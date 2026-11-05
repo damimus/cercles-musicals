@@ -1132,6 +1132,9 @@ function createAudioPool(source) {
     audio.preload = "auto";
     audio.playsInline = true;
     audio.volume = 0.8;
+    audio.addEventListener("ended", () => {
+      audio.currentTime = 0;
+    });
     return audio;
   });
 }
@@ -1187,12 +1190,19 @@ function playAudioFile(name) {
   const players = audioPlayers[name];
   if (!players) return;
 
-  const index = audioPlayerIndexes[name]++ % players.length;
+  let index = audioPlayerIndexes[name] % players.length;
+  for (let offset = 0; offset < players.length; offset++) {
+    const candidateIndex = (index + offset) % players.length;
+    const candidate = players[candidateIndex];
+    if (candidate.paused && candidate.currentTime === 0) {
+      index = candidateIndex;
+      break;
+    }
+  }
   const audio = players[index];
+  audioPlayerIndexes[name] = (index + 1) % players.length;
 
   try {
-    audio.pause();
-    audio.currentTime = 0;
     const request = audio.play();
     if (request && typeof request.then === "function") {
       request.then(() => {
