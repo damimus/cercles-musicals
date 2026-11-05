@@ -1016,7 +1016,7 @@ data-color="white"></div>
 
 <div class="metro-control">
 
-<button onclick="toggleMetronome()">
+<button id="metronomeBtn" onclick="toggleMetronome()">
 ⏱️
 </button>
 
@@ -1115,7 +1115,8 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 let ctx = null;
 let audioResumePromise = null;
 let audioOutputGain = null;
-let audioUnlockOscillator = null;
+let audioToneOscillator = null;
+let audioToneGain = null;
 
 function getAudioContext() {
   if (ctx) return ctx;
@@ -1141,14 +1142,14 @@ function getAudioContext() {
   audioOutputGain.gain.value = 0.72;
   audioOutputGain.connect(ctx.destination);
 
-  const unlockGain = ctx.createGain();
-  unlockGain.gain.value = 0;
-  audioUnlockOscillator = ctx.createOscillator();
-  audioUnlockOscillator.type = "sine";
-  audioUnlockOscillator.frequency.value = 440;
-  audioUnlockOscillator.connect(unlockGain);
-  unlockGain.connect(audioOutputGain);
-  audioUnlockOscillator.start();
+  audioToneOscillator = ctx.createOscillator();
+  audioToneOscillator.type = "triangle";
+  audioToneOscillator.frequency.value = 440;
+  audioToneGain = ctx.createGain();
+  audioToneGain.gain.value = 0;
+  audioToneOscillator.connect(audioToneGain);
+  audioToneGain.connect(audioOutputGain);
+  audioToneOscillator.start();
 
   return ctx;
 }
@@ -1186,41 +1187,28 @@ function unlockAudioContext() {
 function playTone(freq,duration=0.15){
 
 const audioContext = getAudioContext();
-if (!audioContext) return;
-
-function scheduleTone() {
-  const osc=audioContext.createOscillator();
-  const gain=audioContext.createGain();
-
-  osc.type="triangle";
-  osc.frequency.value=freq;
-
-  osc.connect(gain);
-  gain.connect(audioOutputGain);
-
-  gain.gain.setValueAtTime(
-    0.4,
-    audioContext.currentTime
-  );
-
-  gain.gain.exponentialRampToValueAtTime(
-    0.001,
-    audioContext.currentTime+duration
-  );
-
-  osc.start();
-  osc.stop(audioContext.currentTime+duration);
-}
+if (!audioContext || !audioToneOscillator || !audioToneGain) return;
 
 if (audioContext.state === "running") {
-  scheduleTone();
+  scheduleTone(freq, duration);
 } else {
   unlockAudioContext().then(resumedContext => {
     if (resumedContext === audioContext && audioContext.state === "running") {
-      scheduleTone();
+      scheduleTone(freq, duration);
     }
   });
 }
+}
+
+function scheduleTone(freq, duration) {
+  const now = ctx.currentTime;
+  const gain = audioToneGain.gain;
+
+  audioToneOscillator.frequency.setValueAtTime(freq, now);
+  gain.cancelScheduledValues(now);
+  gain.setValueAtTime(Math.max(gain.value, 0.001), now);
+  gain.exponentialRampToValueAtTime(0.4, now + 0.005);
+  gain.exponentialRampToValueAtTime(0.001, now + duration);
 }
 
 function playLow(){
@@ -1285,9 +1273,16 @@ function toggleMetronome() {
     clearInterval(metro);
     metro = null;
   } else {
-    const interval = 60000 / currentTempo;
-    metronomeClick();
-    metro = setInterval(metronomeClick, interval);
+    const audioContext = getAudioContext();
+    if (!audioContext) return;
+
+    resumeAudioContext().then(resumedContext => {
+      if (resumedContext !== audioContext || audioContext.state !== "running" || metro) return;
+      const interval = 60000 / Number(document.getElementById("tempo").value);
+      metronomeClick();
+      metro = setInterval(metronomeClick, interval);
+      updateMetronomeButton();
+    });
   }
 
   updateMetronomeButton();
@@ -1332,9 +1327,18 @@ function nextCircle(){
  },beatMs());
 }
 
-function startPlayback(){
+async function startPlayback(){
  if(isPlaying)return;
  const n=document.querySelectorAll(".note"); if(!n.length)return;
+ const audioContext=getAudioContext(); if(!audioContext)return;
+ try {
+   await resumeAudioContext();
+   if(audioContext.state!=="running")throw new Error("El audio sigue suspendido.");
+ } catch(error) {
+   console.warn("No se pudo reanudar el audio de la reproducción.",error);
+   return;
+ }
+ if(isPlaying)return;
  isPlaying=true; playbackIndex=0;
  const b=document.getElementById("playBtn"); b.textContent="■ Stop"; b.classList.add("playing");
  if(!metro)metro=setInterval(metronomeClick,beatMs());
