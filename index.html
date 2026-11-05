@@ -655,10 +655,105 @@ width:90px;
       display:none;
     }
 
+    .start-overlay {
+      position:fixed;
+      inset:0;
+      z-index:100;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      background:rgba(15,23,42,.72);
+    }
+
+    .start-overlay[hidden],
+    .orientation-notice[hidden] {
+      display:none;
+    }
+
+    .start-card {
+      width:min(100%, 440px);
+      padding:28px;
+      border-radius:24px;
+      background:white;
+      box-shadow:0 16px 48px rgba(0,0,0,.25);
+      text-align:center;
+    }
+
+    .start-card h1 {
+      margin-bottom:12px;
+      font-size:clamp(24px, 5vw, 32px);
+    }
+
+    .start-card p {
+      margin-top:10px;
+      line-height:1.5;
+    }
+
+    #startButton {
+      margin-top:20px;
+      padding:14px 22px;
+      border:0;
+      border-radius:14px;
+      background:#22c55e;
+      color:white;
+      font-size:18px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    #startButton:disabled {
+      cursor:wait;
+      opacity:.7;
+    }
+
+    .orientation-notice {
+      position:fixed;
+      z-index:50;
+      left:50%;
+      bottom:12px;
+      width:min(calc(100% - 24px), 520px);
+      padding:10px 14px;
+      border-radius:12px;
+      background:#172554;
+      color:white;
+      text-align:center;
+      transform:translateX(-50%);
+    }
+
+    @media (orientation: portrait) and (any-pointer: coarse) {
+      body {
+        position:fixed;
+        top:0;
+        left:100vw;
+        width:100vh;
+        height:100vw;
+        transform:rotate(90deg);
+        transform-origin:top left;
+      }
+
+      @supports (height: 100dvh) {
+        body {
+          left:100dvw;
+          width:100dvh;
+          height:100dvw;
+        }
+      }
+    }
+
 </style>
 </head>
 
 <body>
+
+<div id="startOverlay" class="start-overlay">
+  <section class="start-card" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+    <h1 id="startTitle">Juego listo</h1>
+    <p>En móviles, el juego se mostrará en horizontal.</p>
+    <p>Por seguridad, el navegador solo permite solicitar pantalla completa y orientación al tocar el botón.</p>
+    <button id="startButton" type="button">▶ Empezar</button>
+  </section>
+</div>
+<div id="orientationNotice" class="orientation-notice" role="status" aria-live="polite" hidden></div>
 
 <!-- BARRA -->
 
@@ -1412,6 +1507,47 @@ updatePadsButton();
 
 // Estado inicial del metrónomo: apagado = amarillo.
 updateMetronomeButton();
+
+document.getElementById("startButton").addEventListener("click", startGame);
+
+async function startGame() {
+  const button = document.getElementById("startButton");
+  const overlay = document.getElementById("startOverlay");
+  const notice = document.getElementById("orientationNotice");
+  const limitations = [];
+
+  button.disabled = true;
+
+  try {
+    if (!document.documentElement.requestFullscreen) {
+      limitations.push("pantalla completa");
+    } else if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch (error) {
+    console.warn("El navegador no permitió activar la pantalla completa.", error);
+    limitations.push("pantalla completa");
+  }
+
+  try {
+    if (!screen.orientation?.lock) {
+      limitations.push("orientación horizontal");
+    } else {
+      await screen.orientation.lock("landscape");
+    }
+  } catch (error) {
+    console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
+    limitations.push("orientación horizontal");
+  }
+
+  overlay.hidden = true;
+  if (limitations.length) {
+    notice.textContent =
+      "Este navegador no permite solicitar " + limitations.join(" ni ") +
+      ". El juego seguirá en horizontal; gira el dispositivo si hace falta.";
+    notice.hidden = false;
+  }
+}
 </script>
 
 </body>
