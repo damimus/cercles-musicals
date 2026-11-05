@@ -1122,6 +1122,8 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 /* AUDIO */
 
 const AUDIO_POOL_SIZE = 3;
+const useNativeAudio = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const audioFiles = {
   low: "audio/low.wav",
   high: "audio/high.wav",
@@ -1265,7 +1267,7 @@ function playBufferedSound(name) {
 }
 
 function playAudioFile(name) {
-  if (playBufferedSound(name)) return;
+  if (!useNativeAudio && playBufferedSound(name)) return;
 
   const players = audioPlayers[name];
   if (!players) return;
@@ -1908,7 +1910,9 @@ async function startGame() {
   button.disabled = true;
   button.textContent = "Preparando sonidos…";
   primeAudioPlayers();
-  const audioReady = prepareLowLatencyAudio();
+  const audioReady = useNativeAudio
+    ? Promise.resolve(false)
+    : prepareLowLatencyAudio();
 
   try {
     if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
