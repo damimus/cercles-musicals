@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Juego de Ritmo</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:'Segoe UI',sans-serif;
+height:100vh;
+display:flex;
+flex-direction:column;
+background:#DFF4FF;
+overflow:hidden;
+}
+
+/* =======================
+BARRA SUPERIOR
+======================= */
+
+.top-panel{
+
+display:flex;
+align-items:center;
+justify-content:center;
+flex-wrap:wrap;
+gap:12px;
+
+padding:12px;
+
+background:white;
+
+box-shadow:0 2px 15px rgba(0,0,0,.08);
+
+z-index:10;
+}
+
+.separator{
+width:10px;
+height:30px;
+border-left:1px solid #ddd;
+}
+
+/* FIGURAS */
+
+.figure-btn{
+
+width:55px;
+height:55px;
+
+border:none;
+
+border-radius:16px;
+
+background:#eef2f7;
+
+font-size:24px;
+
+cursor:pointer;
+
+transition:.2s;
+}
+
+.figure-btn.active{
+
+background:#22c55e;
+
+color:white;
+
+box-shadow:
+0 0 0 3px #86efac,
+0 0 14px rgba(34,197,94,.4);
+
+}
+
+/* COLORES */
+
+.color-btn{
+
+width:42px;
+height:42px;
+
+border-radius:50%;
+
+cursor:pointer;
+
+transition:.2s;
+
+border:3px solid transparent;
+
+}
+
+.color-btn.active{
+
+transform:scale(1.25);
+
+border-color:#22c55e;
+
+box-shadow:
+0 0 10px rgba(34,197,94,.5);
+}
+
+.red-btn{
+background:#ff4d4d;
+}
+
+.blue-btn{
+background:#3b82f6;
+}
+
+.white-btn{
+background:white;
+border:2px solid #ccc;
+}
+
+/* REPRODUCCIÓN */
+.play-control{display:flex;align-items:center;padding:10px 14px;background:#22c55e;border-radius:16px;font-weight:700}
+#playBtn{border:0;background:none;color:white;font-size:18px;font-weight:700;cursor:pointer}
+#playBtn.playing{background:#ef4444;border-radius:10px;padding:5px 9px}
+.note.playing{z-index:2;animation:playGlow .22s ease-out}
+.note.part-glow{filter:brightness(1.6);transform:scale(1.08)}
+@keyframes playGlow{
+0%{transform:scale(1)}
+45%{transform:scale(1.12);filter:brightness(1.45);box-shadow:0 0 0 6px rgba(34,197,94,.35),0 0 30px 12px rgba(34,197,94,.75),0 10px 25px rgba(0,0,0,.15)}
+100%{transform:scale(1);filter:brightness(1)}
+}
+
+/* METRONOMO */
+
+.metro-control{
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+padding:10px 14px;
+
+background:#FDBA2D;
+
+border-radius:16px;
+
+font-weight:700;
+
+}
+
+.metro-control button{
+
+border:none;
+background:none;
+
+font-size:22px;
+
+cursor:pointer;
+}
+
+#tempo{
+width:140px;
+}
+
+#tempoValue{
+min-width:40px;
+font-weight:700;
+}
+
+/* =======================
+ZONA JUEGO
+======================= */
+
+.main-panel{
+
+flex:1;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+padding:20px;
+
+background:#F5FAFF;
+}
+
+.exercise-card{
+
+width:98%;
+
+max-width:1600px;
+
+height:320px;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+background:white;
+
+border-radius:35px;
+
+box-shadow:
+0 15px 50px rgba(0,0,0,.08);
+
+padding:20px;
+}
+
+.sequence{
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+gap:22px;
+
+width:100%;
+}
+
+/* =======================
+NOTAS
+======================= */
+
+.note{
+
+width:130px;
+height:130px;
+
+border-radius:50%;
+
+overflow:hidden;
+
+position:relative;
+
+border:6px solid white;
+
+box-shadow:
+0 10px 25px rgba(0,0,0,.15);
+
+animation:pop .25s ease;
+
+flex-shrink:0;
+}
+
+@keyframes pop{
+
+from{
+transform:scale(.75);
+opacity:0;
+}
+
+to{
+transform:scale(1);
+opacity:1;
+}
+
+}
+
+.divider-v{
+
+position:absolute;
+
+left:50%;
+top:0;
+
+width:4px;
+height:100%;
+
+background:#222;
+
+transform:translateX(-50%);
+}
+
+.divider-h{
+
+position:absolute;
+
+top:50%;
+left:0;
+
+width:100%;
+height:4px;
+
+background:#222;
+
+transform:translateY(-50%);
+}
+
+/* =======================
+PADS
+======================= */
+
+.bottom-panel{
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+gap:90px;
+
+padding:20px;
+
+}
+
+.pad-panel{
+
+background:white;
+
+padding:15px 30px;
+
+border-radius:28px;
+
+box-shadow:
+0 10px 25px rgba(0,0,0,.12);
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+}
+
+.pad{
+
+width:140px;
+height:140px;
+
+border-radius:50%;
+
+cursor:pointer;
+
+transition:.15s;
+}
+
+.pad:hover{
+transform:scale(1.08);
+}
+
+.pad:active{
+transform:scale(.95);
+}
+
+.red-pad{
+
+background:
+radial-gradient(
+circle at 30% 30%,
+#ffb0b0,
+#ff4545 60%,
+#b80000
+);
+
+}
+
+.blue-pad{
+
+background:
+radial-gradient(
+circle at 30% 30%,
+#b8d5ff,
+#4184ff 60%,
+#0036a8
+);
+
+}
+
+.label{
+
+margin-top:12px;
+
+font-size:18px;
+
+font-weight:700;
+}
+
+/* =======================
+RESPONSIVE
+======================= */
+
+@media(max-width:1200px){
+
+.note{
+width:100px;
+height:100px;
+}
+
+.sequence{
+gap:12px;
+}
+
+}
+
+@media(max-width:900px){
+
+.exercise-card{
+height:220px;
+}
+
+.note{
+width:70px;
+height:70px;
+}
+
+.sequence{
+gap:6px;
+}
+
+.pad{
+width:100px;
+height:100px;
+}
+
+.bottom-panel{
+gap:30px;
+}
+
+#tempo{
+width:90px;
+}
+}
+
+
+    .edit-tools {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-left: 8px;
+      padding-left: 12px;
+      border-left: 2px solid #ddd;
+    }
+
+    .edit-tool {
+      width: 48px;
+      height: 48px;
+      border: 2px solid #d0d0d0;
+      border-radius: 10px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: .15s;
+      user-select: none;
+    }
+
+    .edit-tool:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0,0,0,.15);
+    }
+
+    .edit-tool.active {
+      border-color: #222;
+      box-shadow: 0 0 0 3px rgba(0,0,0,.15);
+      background: #f2f2f2;
+    }
+
+    .pencil-icon {
+      font-size: 30px;
+      line-height: 1;
+      font-family: Arial, sans-serif;
+    }
+
+    .red-pencil .pencil-icon { color: #e53935; }
+    .blue-pencil .pencil-icon { color: #2563eb; }
+
+    .eraser-icon {
+      width: 26px;
+      height: 19px;
+      border: 2px solid #555;
+      border-radius: 4px;
+      transform: rotate(-35deg);
+      background: linear-gradient(90deg, #f5a0b5 0 58%, #fff 58% 100%);
+      position: relative;
+      display: block;
+    }
+
+    .eraser-icon::after {
+      content: "";
+      position: absolute;
+      left: 57%;
+      top: -2px;
+      bottom: -2px;
+      width: 2px;
+      background: #555;
+    }
+
+    .note {
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .note-part {
+      position: absolute;
+      z-index: 20;
+      cursor: crosshair;
+      box-sizing: border-box;
+    }
+
+    .note-part:hover {
+      background: rgba(255,255,255,.16);
+      outline: 2px solid rgba(0,0,0,.18);
+      outline-offset: -2px;
+    }
+
+
+    /* Estados del botón de metrónomo */
+    #metronomeBtn.metro-off {
+      background: #ffd83d !important;
+      border-color: #e0b900 !important;
+      color: #222 !important;
+    }
+
+    #metronomeBtn.metro-on {
+      background: #35c759 !important;
+      border-color: #249a40 !important;
+      color: white !important;
+    }
+
+    /* Líneas divisorias editables */
+    .editable-divider {
+      position: absolute;
+      z-index: 25;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    .editable-divider:hover {
+      background: rgba(255,255,255,.45);
+    }
+
+    .editable-divider-v {
+      left: calc(50% - 8px);
+      top: 0;
+      width: 16px;
+      height: 100%;
+    }
+
+    .editable-divider-h {
+      left: 0;
+      top: calc(50% - 8px);
+      width: 100%;
+      height: 16px;
+    }
+
+
+    .metro-sound-control{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-left:4px;
+    }
+    .metro-sound-btn{
+      min-width:58px;
+      height:38px;
+      padding:0 9px;
+      border:2px solid #d0d0d0;
+      border-radius:10px;
+      background:white;
+      font-size:15px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.15s;
+    }
+    .metro-sound-btn.sound-on{
+      background:#35c759;
+      border-color:#249a40;
+      color:white;
+    }
+    .metro-sound-btn.sound-off{
+      background:#eeeeee;
+      border-color:#c7c7c7;
+      color:#666;
+    }
+
+
+    .black-pencil .pencil-icon {
+      color:#111 !important;
+    }
+
+    .division-guide {
+      position:absolute;
+      z-index:25;
+      cursor:pointer;
+      background:transparent;
+    }
+
+    .division-guide:hover {
+      background:rgba(0,0,0,.12);
+    }
+
+    .division-guide-v {
+      left:calc(50% - 8px);
+      top:0;
+      width:16px;
+      height:100%;
+    }
+
+    .division-guide-h {
+      left:0;
+      top:calc(50% - 8px);
+      width:100%;
+      height:16px;
+    }
+
+
+    /* Selector para mostrar/ocultar los pads */
+    .pads-toggle {
+      display:flex;
+      align-items:center;
+      margin-left:4px;
+    }
+
+    .pads-toggle-btn {
+      height:38px;
+      min-width:62px;
+      padding:0 10px;
+      border:2px solid #d0d0d0;
+      border-radius:10px;
+      background:#eeeeee;
+      color:#666;
+      font-size:15px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.15s;
+    }
+
+    .pads-toggle-btn.pads-on {
+      background:#35c759;
+      border-color:#249a40;
+      color:white;
+    }
+
+    .pads-toggle-btn.pads-off {
+      background:#eeeeee;
+      border-color:#c7c7c7;
+      color:#666;
+    }
+
+    .bottom-panel.pads-hidden {
+      display:none;
+    }
+
+</style>
+</head>
+
+<body>
+
+<!-- BARRA -->
+
+<div class="top-panel">
+
+<button class="figure-btn active"
+data-figure="negra"
+title="Negra">⚫</button>
+
+<button class="figure-btn active"
+data-figure="corchea"
+title="Corchea">🎵</button>
+
+<button class="figure-btn active"
+data-figure="semicorchea"
+title="Semicorchea">🎶</button>
+
+<div class="separator"></div>
+
+<div class="color-btn red-btn active"
+data-color="red"></div>
+
+<div class="color-btn blue-btn active"
+data-color="blue"></div>
+
+<div class="color-btn white-btn active"
+data-color="white"></div>
+
+<div class="separator"></div>
+
+<div class="play-control">
+<button id="playBtn" onclick="togglePlayback()">▶ Play</button>
+</div>
+
+<div class="metro-control">
+
+<button onclick="toggleMetronome()">
+⏱️
+</button>
+
+<input
+type="range"
+id="tempo"
+min="40"
+max="180"
+value="90">
+
+<span id="tempoValue">90</span>
+
+  <div class="metro-sound-control">
+    <button id="metroSoundBtn"
+            class="metro-sound-btn sound-on"
+            onclick="toggleMetronomeSound()"
+            title="Sonido del metrónomo activado">
+      🔊 ON
+    </button>
+  </div>
+
+</div>
+
+      <div class="edit-tools" aria-label="Herramientas de edición">
+        <button id="redPencil" class="edit-tool red-pencil active" title="Lápiz rojo" aria-label="Lápiz rojo">
+          <span class="pencil-icon">✎</span>
+        </button>
+        <button id="bluePencil" class="edit-tool blue-pencil" title="Lápiz azul" aria-label="Lápiz azul">
+          <span class="pencil-icon">✎</span>
+        </button>
+        <button id="eraser" class="edit-tool" title="Goma de borrar — silencio" aria-label="Goma de borrar">
+          <span class="eraser-icon"></span>
+        </button>
+        <button id="blackPencil" class="edit-tool black-pencil" title="Lápiz negro — crear divisiones" aria-label="Lápiz negro — crear divisiones">
+          <span class="pencil-icon">✎</span>
+        </button>
+      </div>
+
+      <div class="pads-toggle">
+        <button id="padsToggleBtn"
+                class="pads-toggle-btn pads-off"
+                onclick="togglePads()"
+                title="Mostrar u ocultar los pads de sonido">
+          🔊 OFF
+        </button>
+      </div>
+
+</div>
+
+<!-- JUEGO -->
+
+<div class="main-panel">
+
+<div class="exercise-card">
+
+<div id="sequence"
+class="sequence">
+</div>
+
+</div>
+
+</div>
+
+<!-- PADS -->
+
+<div class="bottom-panel">
+
+<div class="pad-panel">
+
+<div class="pad red-pad"
+onclick="playLow()">
+</div>
+
+<div class="label">
+🔴 Grave
+</div>
+
+</div>
+
+<div class="pad-panel">
+
+<div class="pad blue-pad"
+onclick="playHigh()">
+</div>
+
+<div class="label">
+🔵 Agudo
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+/* AUDIO */
+
+const ctx =
+new(window.AudioContext||
+window.webkitAudioContext)();
+
+function playTone(freq,duration=0.15){
+
+const osc=ctx.createOscillator();
+const gain=ctx.createGain();
+
+osc.type="triangle";
+osc.frequency.value=freq;
+
+osc.connect(gain);
+gain.connect(ctx.destination);
+
+gain.gain.setValueAtTime(
+0.4,
+ctx.currentTime
+);
+
+gain.gain.exponentialRampToValueAtTime(
+0.001,
+ctx.currentTime+duration
+);
+
+osc.start();
+osc.stop(ctx.currentTime+duration);
+}
+
+function playLow(){
+playTone(120);
+}
+
+function playHigh(){
+playTone(550);
+}
+
+function metronomeClick(){
+  if (metronomeSoundEnabled) {
+    playTone(1400,0.04);
+  }
+}
+
+let metronomeSoundEnabled = true;
+
+function updateMetronomeSoundButton() {
+  const btn = document.getElementById("metroSoundBtn");
+  if (!btn) return;
+
+  btn.classList.remove("sound-on", "sound-off");
+
+  if (metronomeSoundEnabled) {
+    btn.classList.add("sound-on");
+    btn.textContent = "🔊 ON";
+    btn.title = "Sonido del metrónomo activado";
+  } else {
+    btn.classList.add("sound-off");
+    btn.textContent = "🔇 OFF";
+    btn.title = "Sonido del metrónomo desactivado";
+  }
+}
+
+function toggleMetronomeSound() {
+  metronomeSoundEnabled = !metronomeSoundEnabled;
+  updateMetronomeSoundButton();
+}
+
+
+/* METRONOMO */
+
+let metro=null;
+
+
+function updateMetronomeButton() {
+  const btn = document.getElementById("metronomeBtn");
+  if (!btn) return;
+
+  btn.classList.remove("metro-on", "metro-off");
+
+  if (metro) {
+    btn.classList.add("metro-on");
+  } else {
+    btn.classList.add("metro-off");
+  }
+}
+
+function toggleMetronome() {
+  if (metro) {
+    clearInterval(metro);
+    metro = null;
+  } else {
+    const interval = 60000 / currentTempo;
+    metronomeClick();
+    metro = setInterval(metronomeClick, interval);
+  }
+
+  updateMetronomeButton();
+}
+
+
+
+/* REPRODUCCIÓN */
+let playbackTimer=null, subdivisionTimer=null, playbackIndex=0, isPlaying=false;
+
+function beatMs(){return 60000/Number(document.getElementById("tempo").value);}
+function soundColor(c){if(c==="red")playLow();else if(c==="blue")playHigh();}
+function colorsOf(note){try{return JSON.parse(note.dataset.soundColors)}catch(e){return["white"]}}
+
+function playCircle(i){
+ const notes=document.querySelectorAll(".note");
+ if(!notes.length)return;
+ if(i>=notes.length)i=0;
+ const note=notes[i], colors=colorsOf(note), partMs=beatMs()/colors.length;
+ note.classList.add("playing");
+ let k=0;
+ function part(){
+   if(!isPlaying)return;
+   if(k>=colors.length){note.classList.remove("playing","part-glow");return}
+   note.classList.add("part-glow");
+   setTimeout(()=>note.classList.remove("part-glow"),Math.max(35,partMs*.65));
+   soundColor(colors[k++]);
+   subdivisionTimer=setTimeout(part,partMs);
+ }
+ part();
+}
+
+function nextCircle(){
+ if(!isPlaying)return;
+ playbackTimer=setTimeout(()=>{
+   if(!isPlaying)return;
+   playbackIndex++;
+   const n=document.querySelectorAll(".note");
+   if(playbackIndex>=n.length)playbackIndex=0;
+   playCircle(playbackIndex);
+   nextCircle();
+ },beatMs());
+}
+
+function startPlayback(){
+ if(isPlaying)return;
+ const n=document.querySelectorAll(".note"); if(!n.length)return;
+ isPlaying=true; playbackIndex=0;
+ const b=document.getElementById("playBtn"); b.textContent="■ Stop"; b.classList.add("playing");
+ if(!metro)metro=setInterval(metronomeClick,beatMs());
+ playCircle(0); nextCircle();
+}
+
+function stopPlayback(){
+ isPlaying=false;
+ if(playbackTimer)clearTimeout(playbackTimer);
+ if(subdivisionTimer)clearTimeout(subdivisionTimer);
+ playbackTimer=null; subdivisionTimer=null;
+ document.querySelectorAll(".note").forEach(n=>n.classList.remove("playing","part-glow"));
+ const b=document.getElementById("playBtn"); b.textContent="▶ Play"; b.classList.remove("playing");
+ if(metro){clearInterval(metro);metro=null;}
+}
+
+function togglePlayback(){if(isPlaying)stopPlayback();else startPlayback();}
+
+document.getElementById("tempo").addEventListener("input",function(){
+ document.getElementById("tempoValue").textContent=this.value;
+ if(metro){clearInterval(metro);metro=setInterval(metronomeClick,beatMs());}
+ if(isPlaying){
+   if(playbackTimer)clearTimeout(playbackTimer);
+   if(subdivisionTimer)clearTimeout(subdivisionTimer);
+   document.querySelectorAll(".note").forEach(n=>n.classList.remove("playing","part-glow"));
+   playCircle(playbackIndex); nextCircle();
+ }
+});
+
+/* SELECTORES */
+
+
+document.querySelectorAll(".figure-btn")
+.forEach(btn=>{
+
+btn.addEventListener("click",()=>{
+
+btn.classList.toggle("active");
+
+if(
+document.querySelectorAll(
+".figure-btn.active"
+).length===0
+){
+btn.classList.add("active");
+}
+
+generatePattern();
+
+});
+
+});
+
+document.querySelectorAll(".color-btn")
+.forEach(btn=>{
+
+btn.addEventListener("click",()=>{
+
+btn.classList.toggle("active");
+
+if(
+document.querySelectorAll(
+".color-btn.active"
+).length===0
+){
+btn.classList.add("active");
+}
+
+generatePattern();
+
+});
+
+});
+
+/* DATOS */
+
+function randomColor(){
+
+const colors=[];
+
+document
+.querySelectorAll(".color-btn.active")
+.forEach(btn=>{
+
+colors.push(btn.dataset.color);
+
+});
+
+const random=
+colors[
+Math.floor(
+Math.random()*colors.length
+)
+];
+
+if(random==="red") return "#ff4d4d";
+if(random==="blue") return "#3b82f6";
+
+return "#ffffff";
+}
+
+function randomFigure(){
+
+const figures=[];
+
+document
+.querySelectorAll(".figure-btn.active")
+.forEach(btn=>{
+
+figures.push(
+btn.dataset.figure
+);
+
+});
+
+return figures[
+Math.floor(
+Math.random()*figures.length
+)
+];
+}
+
+/* FIGURAS */
+
+
+let selectedTool = "red";
+let blackDivisionMode = false;
+
+function colorToHex(color) {
+  if (color === "red") return "#ff4d4d";
+  if (color === "blue") return "#3b82f6";
+  return "#ffffff";
+}
+
+function getActiveColors() {
+  const result = [];
+  document.querySelectorAll(".color-btn.active").forEach(btn => {
+    result.push(btn.dataset.color);
+  });
+  return result.length ? result : ["white"];
+}
+
+function getActiveFigures() {
+  const result = [];
+  document.querySelectorAll(".figure-btn.active").forEach(btn => {
+    result.push(btn.dataset.figure);
+  });
+  return result.length ? result : ["negra"];
+}
+
+function randomColor() {
+  const colors = getActiveColors();
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function randomFigure() {
+  const figures = getActiveFigures();
+  return figures[Math.floor(Math.random() * figures.length)];
+}
+
+function getNoteColors(note) {
+  try {
+    const colors = JSON.parse(note.dataset.soundColors || "[]");
+    return Array.isArray(colors) && colors.length ? colors : ["white"];
+  } catch (e) {
+    return ["white"];
+  }
+}
+
+function setNoteColors(note, colors) {
+  note.dataset.soundColors = JSON.stringify(colors);
+  drawNote(note);
+}
+
+function editPart(note, index) {
+  const colors = getNoteColors(note);
+  colors[index] = selectedTool;
+  setNoteColors(note, colors);
+}
+
+function addPart(note, index, total) {
+  const part = document.createElement("div");
+  part.className = "note-part";
+
+  if (total === 2) {
+    part.style.left = index === 0 ? "0" : "50%";
+    part.style.top = "0";
+    part.style.width = "50%";
+    part.style.height = "100%";
+  } else {
+    const row = Math.floor(index / 2);
+    const col = index % 2;
+    part.style.left = col === 0 ? "0" : "50%";
+    part.style.top = row === 0 ? "0" : "50%";
+    part.style.width = "50%";
+    part.style.height = "50%";
+  }
+
+  part.addEventListener("click", function(e) {
+    e.stopPropagation();
+    editPart(note, index);
+  });
+
+  note.appendChild(part);
+}
+
+
+
+
+function drawNote(note) {
+  const colors = getNoteColors(note);
+  const total = colors.length;
+
+  note.innerHTML = "";
+  note.style.background = "";
+  note.style.backgroundImage = "";
+  note.style.backgroundSize = "";
+  note.style.backgroundPosition = "";
+  note.style.backgroundRepeat = "";
+
+  // NEGRA
+  if (total === 1) {
+    note.style.background = colorToHex(colors[0]);
+
+    // Lápiz negro: una negra se divide en dos partes
+    // conservando exactamente su color.
+    if (selectedTool === "black") {
+      const guide = document.createElement("div");
+      guide.className = "division-guide division-guide-v";
+      guide.title = "Dividir en dos";
+
+      guide.addEventListener("click", function(e) {
+        e.stopPropagation();
+        const c = colors[0];
+        setNoteColors(note, [c, c]);
+      });
+
+      note.appendChild(guide);
+    }
+    return;
+  }
+
+  // CORCHEA: dos mitades
+  if (total === 2) {
+    note.style.backgroundImage =
+      `linear-gradient(to right,
+        ${colorToHex(colors[0])} 0 50%,
+        ${colorToHex(colors[1])} 50% 100%)`;
+
+    const divider = document.createElement("div");
+    divider.className = "divider-v";
+    note.appendChild(divider);
+
+    // GOMA: elimina la división y conserva el color
+    // de la primera mitad (si es silencio, blanco).
+    const erase = document.createElement("div");
+    erase.className = "editable-divider editable-divider-v";
+    erase.title = "Borrar división";
+
+    erase.addEventListener("click", function(e) {
+      e.stopPropagation();
+      if (selectedTool === "white") {
+        // Si ambas partes tienen el mismo color, lo conserva.
+        // Si son diferentes, se toma la primera, que representa
+        // la parte que queda al unirlas.
+        setNoteColors(note, [colors[0]]);
+      }
+    });
+
+    note.appendChild(erase);
+
+    // LÁPIZ NEGRO: divide cada mitad horizontalmente.
+    // Rojo -> rojo, rojo
+    // Azul -> azul, azul
+    // Blanco -> blanco, blanco
+    if (selectedTool === "black") {
+      const guide = document.createElement("div");
+      guide.className = "division-guide division-guide-h";
+      guide.title = "Dividir en cuatro";
+
+      guide.addEventListener("click", function(e) {
+        e.stopPropagation();
+
+        setNoteColors(note, [
+          colors[0], colors[0],
+          colors[1], colors[1]
+        ]);
+      });
+
+      note.appendChild(guide);
+    }
+
+    addPart(note, 0, 2);
+    addPart(note, 1, 2);
+    return;
+  }
+
+  // SEMICORCHEA: cuatro partes
+  note.style.backgroundImage =
+    `linear-gradient(to right,
+        ${colorToHex(colors[0])} 0 50%,
+        ${colorToHex(colors[1])} 50% 100%),
+     linear-gradient(to right,
+        ${colorToHex(colors[2])} 0 50%,
+        ${colorToHex(colors[3])} 50% 100%)`;
+
+  note.style.backgroundSize = "100% 50%, 100% 50%";
+  note.style.backgroundPosition = "0 0, 0 100%";
+  note.style.backgroundRepeat = "no-repeat";
+
+  const v = document.createElement("div");
+  v.className = "divider-v";
+
+  const h = document.createElement("div");
+  h.className = "divider-h";
+
+  note.appendChild(v);
+  note.appendChild(h);
+
+  // Goma: quitar división vertical.
+  const vHit = document.createElement("div");
+  vHit.className = "editable-divider editable-divider-v";
+  vHit.title = "Borrar división vertical";
+
+  vHit.addEventListener("click", function(e) {
+    e.stopPropagation();
+    if (selectedTool !== "white") return;
+
+    // Se conserva el color de cada fila.
+    setNoteColors(note, [
+      colors[0] === colors[1] ? colors[0] : colors[0],
+      colors[2] === colors[3] ? colors[2] : colors[2]
+    ]);
+  });
+
+  // Goma: quitar división horizontal.
+  const hHit = document.createElement("div");
+  hHit.className = "editable-divider editable-divider-h";
+  hHit.title = "Borrar división horizontal";
+
+  hHit.addEventListener("click", function(e) {
+    e.stopPropagation();
+    if (selectedTool !== "white") return;
+
+    // Se conserva el color de cada columna.
+    setNoteColors(note, [
+      colors[0],
+      colors[1]
+    ]);
+  });
+
+  note.appendChild(vHit);
+  note.appendChild(hHit);
+
+  for (let i = 0; i < 4; i++) {
+    addPart(note, i, 4);
+  }
+}
+
+function generatePattern() {
+  stopPlayback();
+
+  const sequence = document.getElementById("sequence");
+  sequence.innerHTML = "";
+
+  for (let i = 0; i < 8; i++) {
+    const note = document.createElement("div");
+    note.className = "note";
+
+    const figure = randomFigure();
+    let colors;
+
+    if (figure === "negra") {
+      colors = [randomColor()];
+    } else if (figure === "corchea") {
+      colors = [randomColor(), randomColor()];
+    } else {
+      colors = [
+        randomColor(),
+        randomColor(),
+        randomColor(),
+        randomColor()
+      ];
+    }
+
+    note.dataset.figure = figure;
+    note.dataset.soundColors = JSON.stringify(colors);
+
+    // Para una negra, el clic afecta al círculo completo.
+    // En corcheas/semicorcheas, las zonas individuales interceptan el clic.
+    note.addEventListener("click", function() {
+      const current = getNoteColors(note);
+      for (let i = 0; i < current.length; i++) {
+        current[i] = selectedTool;
+      }
+      setNoteColors(note, current);
+    });
+
+    sequence.appendChild(note);
+    drawNote(note);
+  }
+}
+
+// Herramientas
+function selectTool(tool) {
+  selectedTool = tool;
+  blackDivisionMode = (tool === "black");
+
+  document.querySelectorAll(".edit-tool").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  if (tool === "red") {
+    document.getElementById("redPencil").classList.add("active");
+  } else if (tool === "blue") {
+    document.getElementById("bluePencil").classList.add("active");
+  } else if (tool === "white") {
+    document.getElementById("eraser").classList.add("active");
+  } else if (tool === "black") {
+    document.getElementById("blackPencil").classList.add("active");
+  }
+
+  // Al cambiar de herramienta, redibujamos las notas para mostrar
+  // las zonas de división disponibles.
+  document.querySelectorAll(".note").forEach(note => drawNote(note));
+}
+
+document.getElementById("redPencil").addEventListener("click", function() {
+  selectTool("red");
+});
+
+document.getElementById("bluePencil").addEventListener("click", function() {
+  selectTool("blue");
+});
+
+document.getElementById("eraser").addEventListener("click", function() {
+  selectTool("white");
+});
+
+document.getElementById("blackPencil").addEventListener("click", function() {
+  selectTool("black");
+});
+
+
+let padsVisible = false;
+
+function updatePadsButton() {
+  const btn = document.getElementById("padsToggleBtn");
+  const panel = document.querySelector(".bottom-panel");
+
+  if (!btn || !panel) return;
+
+  if (padsVisible) {
+    panel.classList.remove("pads-hidden");
+    btn.classList.remove("pads-off");
+    btn.classList.add("pads-on");
+    btn.textContent = "🔊 ON";
+    btn.title = "Ocultar pads de sonido";
+  } else {
+    panel.classList.add("pads-hidden");
+    btn.classList.remove("pads-on");
+    btn.classList.add("pads-off");
+    btn.textContent = "🔇 OFF";
+    btn.title = "Mostrar pads de sonido";
+  }
+}
+
+function togglePads() {
+  padsVisible = !padsVisible;
+  updatePadsButton();
+}
+
+// Generación inicial
+generatePattern();
+updatePadsButton();
+
+// Estado inicial del metrónomo: apagado = amarillo.
+updateMetronomeButton();
+</script>
+
+</body>
+</html>
