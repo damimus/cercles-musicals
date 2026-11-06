@@ -1086,8 +1086,8 @@ value="90">
       </div>
 
 <button id="exitFullscreenBtn" class="exit-fullscreen-btn"
-        onclick="exitFullscreen()" title="Cerrar el navegador">
-  ✕ Cerrar navegador
+        onclick="exitFullscreen()" title="Cerrar">
+  Cerrar
 </button>
 
 </div>
@@ -1137,9 +1137,6 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 <script>
 
 function exitFullscreen(){
-  window.close();
-  if(window.closed) return;
-
   const fullscreenElement =
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
@@ -1147,7 +1144,7 @@ function exitFullscreen(){
     document.msFullscreenElement;
 
   if(!fullscreenElement){
-    alert("El navegador ha bloqueado el cierre desde la página. Cierra la pestaña con los controles del navegador o de la PDI.");
+    alert("Usa la barra superior del navegador para cerrar la pestaña.");
     return;
   }
 
@@ -1158,27 +1155,21 @@ function exitFullscreen(){
     document.msExitFullscreen;
 
   if(!exit){
-    alert("El navegador ha bloqueado el cierre desde la página. Usa el botón Atrás o los controles de la PDI.");
+    alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
     return;
   }
 
   try{
     const result = exit.call(document);
     if(result && typeof result.then === "function"){
-      result.then(() => {
-        if(!window.closed){
-          alert("Se ha salido de pantalla completa. El navegador no permite que la página cierre su ventana; ciérrala con los controles de la PDI.");
-        }
-      }).catch(error => {
+      result.catch(error => {
         console.error("No se pudo salir de pantalla completa:", error);
-        alert("El navegador ha bloqueado el cierre desde la página. Cierra la pestaña con los controles del navegador o de la PDI.");
+        alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
       });
-    }else if(!window.closed){
-      alert("Se ha solicitado salir de pantalla completa. Si la ventana sigue abierta, ciérrala con los controles de la PDI.");
     }
   }catch(error){
     console.error("No se pudo salir de pantalla completa:", error);
-    alert("El navegador ha bloqueado el cierre desde la página. Cierra la pestaña con los controles del navegador o de la PDI.");
+    alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
   }
 }
 
