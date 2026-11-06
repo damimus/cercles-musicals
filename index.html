@@ -1086,8 +1086,8 @@ value="90">
       </div>
 
 <button id="exitFullscreenBtn" class="exit-fullscreen-btn"
-        onclick="exitFullscreen()" title="Salir de pantalla completa">
-  ⛶ Salir
+        onclick="exitFullscreen()" title="Cerrar el navegador">
+  ✕ Cerrar navegador
 </button>
 
 </div>
@@ -1137,6 +1137,10 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 <script>
 
 async function exitFullscreen(){
+  window.close();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if(window.closed) return;
+
   const fullscreenElement =
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
@@ -1144,7 +1148,7 @@ async function exitFullscreen(){
     document.msFullscreenElement;
 
   if(!fullscreenElement){
-    alert("El navegador no está en pantalla completa. Para cerrar la ventana, usa los controles del navegador o de la PDI.");
+    alert("El navegador ha bloqueado el cierre desde la página. Cierra la pestaña con los controles del navegador o de la PDI.");
     return;
   }
 
@@ -1155,15 +1159,16 @@ async function exitFullscreen(){
     document.msExitFullscreen;
 
   if(!exit){
-    alert("Este navegador no permite salir de pantalla completa desde la página. Usa el botón Atrás o los controles de la PDI.");
+    alert("El navegador ha bloqueado el cierre desde la página. Usa el botón Atrás o los controles de la PDI.");
     return;
   }
 
   try{
     await exit.call(document);
+    alert("El navegador ha bloqueado el cierre de la ventana. Se ha salido de pantalla completa; cierra la pestaña con los controles del navegador o de la PDI.");
   }catch(error){
     console.error("No se pudo salir de pantalla completa:", error);
-    alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
+    alert("El navegador ha bloqueado el cierre desde la página. Cierra la pestaña con los controles del navegador o de la PDI.");
   }
 }
 
