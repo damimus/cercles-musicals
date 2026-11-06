@@ -1136,9 +1136,8 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 
 <script>
 
-async function exitFullscreen(){
+function exitFullscreen(){
   window.close();
-  await new Promise(resolve => setTimeout(resolve, 100));
   if(window.closed) return;
 
   const fullscreenElement =
@@ -1164,8 +1163,19 @@ async function exitFullscreen(){
   }
 
   try{
-    await exit.call(document);
-    alert("El navegador ha bloqueado el cierre de la ventana. Se ha salido de pantalla completa; cierra la pestaña con los controles del navegador o de la PDI.");
+    const result = exit.call(document);
+    if(result && typeof result.then === "function"){
+      result.then(() => {
+        if(!window.closed){
+          alert("Se ha salido de pantalla completa. El navegador no permite que la página cierre su ventana; ciérrala con los controles de la PDI.");
+        }
+      }).catch(error => {
+        console.error("No se pudo salir de pantalla completa:", error);
+        alert("El navegador ha bloqueado el cierre desde la página. Cierra la pestaña con los controles del navegador o de la PDI.");
+      });
+    }else if(!window.closed){
+      alert("Se ha solicitado salir de pantalla completa. Si la ventana sigue abierta, ciérrala con los controles de la PDI.");
+    }
   }catch(error){
     console.error("No se pudo salir de pantalla completa:", error);
     alert("El navegador ha bloqueado el cierre desde la página. Cierra la pestaña con los controles del navegador o de la PDI.");
