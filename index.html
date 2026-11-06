@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Juego de Ritmo</title>
+<link rel="preload" href="audio/low.wav" as="audio">
+<link rel="preload" href="audio/high.wav" as="audio">
+<link rel="preload" href="audio/metronome.wav" as="audio">
 
 <style>
 
@@ -30,18 +33,32 @@ BARRA SUPERIOR
 .top-panel{
 
 display:flex;
-align-items:center;
-justify-content:center;
-flex-wrap:wrap;
-gap:12px;
 
-padding:12px;
+align-items:center;
+
+justify-content:flex-start;
+flex-wrap:nowrap;
+gap:clamp(2px, .75vw, 12px);
+
+padding:clamp(4px, 1vw, 12px);
 
 background:white;
 
 box-shadow:0 2px 15px rgba(0,0,0,.08);
 
 z-index:10;
+width:100%;
+overflow-x:auto;
+flex:0 0 auto;
+scrollbar-width:none;
+}
+
+.top-panel::-webkit-scrollbar{
+display:none;
+}
+
+.top-panel > *{
+flex:0 0 auto;
 }
 
 .separator{
@@ -193,6 +210,9 @@ ZONA JUEGO
 
 flex:1;
 
+min-width:0;
+min-height:0;
+
 display:flex;
 
 justify-content:center;
@@ -207,6 +227,9 @@ background:#F5FAFF;
 .exercise-card{
 
 width:98%;
+
+min-width:0;
+min-height:0;
 
 max-width:1600px;
 
@@ -230,15 +253,19 @@ padding:20px;
 
 .sequence{
 
-display:flex;
+display:grid;
+
+grid-template-columns:repeat(8, minmax(0, 1fr));
 
 justify-content:center;
 
 align-items:center;
 
-gap:22px;
+gap:clamp(2px, 1.5vw, 22px);
 
 width:100%;
+
+min-width:0;
 }
 
 /* =======================
@@ -247,8 +274,14 @@ NOTAS
 
 .note{
 
-width:130px;
-height:130px;
+width:100%;
+max-width:130px;
+height:auto;
+aspect-ratio:1;
+
+min-width:0;
+
+justify-self:center;
 
 border-radius:50%;
 
@@ -263,7 +296,6 @@ box-shadow:
 
 animation:pop .25s ease;
 
-flex-shrink:0;
 }
 
 @keyframes pop{
@@ -326,6 +358,8 @@ gap:90px;
 
 padding:20px;
 
+flex:0 0 auto;
+
 }
 
 .pad-panel{
@@ -351,9 +385,13 @@ align-items:center;
 width:140px;
 height:140px;
 
+padding:0;
+border:0;
 border-radius:50%;
 
+appearance:none;
 cursor:pointer;
+touch-action:manipulation;
 
 transition:.15s;
 }
@@ -406,8 +444,7 @@ RESPONSIVE
 @media(max-width:1200px){
 
 .note{
-width:100px;
-height:100px;
+max-width:100px;
 }
 
 .sequence{
@@ -419,12 +456,14 @@ gap:12px;
 @media(max-width:900px){
 
 .exercise-card{
-height:220px;
+height:min(220px, 100%);
+max-height:100%;
+padding:clamp(8px, 2vmin, 20px);
+border-radius:clamp(16px, 4vmin, 35px);
 }
 
 .note{
-width:70px;
-height:70px;
+max-width:70px;
 }
 
 .sequence{
@@ -432,12 +471,27 @@ gap:6px;
 }
 
 .pad{
-width:100px;
-height:100px;
+width:min(18vmin, 100px);
+height:min(18vmin, 100px);
 }
 
 .bottom-panel{
-gap:30px;
+gap:clamp(8px, 3vmin, 30px);
+padding:clamp(4px, 1.5vmin, 12px);
+}
+
+.pad-panel{
+padding:clamp(4px, 1.8vmin, 12px);
+border-radius:clamp(12px, 3vmin, 24px);
+}
+
+.label{
+margin-top:clamp(4px, 1.5vmin, 10px);
+font-size:clamp(11px, 3vmin, 16px);
+}
+
+.main-panel{
+padding:clamp(4px, 1.2vmin, 12px);
 }
 
 #tempo{
@@ -667,10 +721,286 @@ width:90px;
       display:none;
     }
 
+    @media (max-width: 1200px) {
+      .top-panel {
+        flex-wrap:nowrap;
+        justify-content:flex-start;
+        gap:4px;
+        padding:5px;
+        overflow-x:auto;
+      }
+
+      .top-panel > * {
+        flex:0 0 auto;
+      }
+
+      .figure-btn {
+        width:36px;
+        height:36px;
+        border-radius:9px;
+        font-size:17px;
+      }
+
+      .color-btn {
+        width:27px;
+        height:27px;
+      }
+
+      .separator {
+        width:4px;
+        height:20px;
+      }
+
+      .play-control {
+        padding:5px 7px;
+        border-radius:9px;
+      }
+
+      #playBtn {
+        font-size:13px;
+      }
+
+      .metro-control {
+        gap:4px;
+        padding:5px;
+        border-radius:9px;
+      }
+
+      .metro-control button {
+        font-size:16px;
+      }
+
+      #tempo {
+        width:clamp(52px, 8vw, 72px);
+      }
+
+      #tempoValue {
+        min-width:24px;
+        font-size:12px;
+      }
+
+      .metro-sound-control {
+        gap:3px;
+        margin-left:0;
+      }
+
+      .metro-sound-btn {
+        min-width:44px;
+        height:28px;
+        padding:0 3px;
+        font-size:11px;
+      }
+
+      .edit-tools {
+        gap:3px;
+        margin-left:0;
+        padding-left:4px;
+      }
+
+      .edit-tool {
+        width:32px;
+        height:32px;
+        border-radius:7px;
+      }
+
+      .pencil-icon {
+        font-size:21px;
+      }
+
+      .eraser-icon {
+        width:19px;
+        height:14px;
+      }
+
+      .pads-toggle {
+        margin-left:0;
+      }
+
+      .pads-toggle-btn {
+        height:28px;
+        min-width:46px;
+        padding:0 4px;
+        font-size:11px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .top-panel {
+        gap:2px;
+        padding:4px;
+      }
+
+      .figure-btn {
+        width:30px;
+        height:30px;
+        font-size:15px;
+      }
+
+      .color-btn {
+        width:22px;
+        height:22px;
+      }
+
+      .play-control {
+        padding:4px 5px;
+      }
+
+      #playBtn {
+        font-size:11px;
+      }
+
+      .metro-control {
+        gap:3px;
+        padding:4px;
+      }
+
+      .metro-control button {
+        font-size:14px;
+      }
+
+      #tempo {
+        width:50px;
+      }
+
+      #tempoValue {
+        min-width:20px;
+        font-size:10px;
+      }
+
+      .metro-sound-btn {
+        min-width:39px;
+        height:25px;
+        font-size:10px;
+      }
+
+      .edit-tools {
+        gap:2px;
+        padding-left:3px;
+      }
+
+      .edit-tool {
+        width:27px;
+        height:27px;
+      }
+
+      .pencil-icon {
+        font-size:18px;
+      }
+
+      .eraser-icon {
+        width:17px;
+        height:12px;
+      }
+
+      .pads-toggle-btn {
+        height:25px;
+        min-width:40px;
+        font-size:10px;
+      }
+    }
+
+    @media (min-width: 601px) and (max-width: 700px) {
+      .top-panel {
+        gap:2px;
+        padding:4px;
+      }
+    }
+
+    .start-overlay {
+      position:fixed;
+      inset:0;
+      z-index:100;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      background:rgba(15,23,42,.72);
+    }
+
+    .start-overlay[hidden] {
+      display:none;
+    }
+
+    .start-card {
+      width:min(100%, 440px);
+      padding:28px;
+      border-radius:24px;
+      background:white;
+      box-shadow:0 16px 48px rgba(0,0,0,.25);
+      text-align:center;
+    }
+
+    #audioPlaybackError {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: max(8px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      max-width: calc(100vw - 24px);
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #7a1f1f;
+      color: #fff;
+      font: 14px/1.35 sans-serif;
+      text-align: center;
+    }
+
+    .start-card h1 {
+      margin-bottom:12px;
+      font-size:clamp(24px, 5vw, 32px);
+    }
+
+    .start-card p {
+      margin-top:10px;
+      line-height:1.5;
+    }
+
+    #startButton {
+      margin-top:20px;
+      padding:14px 22px;
+      border:0;
+      border-radius:14px;
+      background:#22c55e;
+      color:white;
+      font-size:18px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    @media (orientation: portrait) and (any-pointer: coarse) {
+      body {
+        position:fixed;
+        top:0;
+        left:100vw;
+        width:100vh;
+        height:100vw;
+        transform:rotate(90deg);
+        transform-origin:top left;
+      }
+
+      @supports (height: 100dvh) {
+        body {
+          left:100dvw;
+          width:100dvh;
+          height:100dvw;
+        }
+      }
+    }
+
 </style>
 </head>
 
 <body>
+
+<div id="startOverlay" class="start-overlay">
+  <section class="start-card" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+    <h1 id="startTitle">Juego listo</h1>
+    <p>En móviles, el juego se mostrará en horizontal.</p>
+    <p>Por seguridad, el navegador solo permite solicitar pantalla completa y orientación al tocar el botón.</p>
+    <button id="startButton" type="button">▶ Empezar</button>
+  </section>
+</div>
+
+<div id="audioPlaybackError" role="status" aria-live="polite" hidden></div>
 
 <!-- BARRA -->
 
@@ -707,7 +1037,7 @@ data-color="white"></div>
 
 <div class="metro-control">
 
-<button onclick="toggleMetronome()">
+<button id="metronomeBtn" onclick="toggleMetronome()">
 ⏱️
 </button>
 
@@ -782,9 +1112,8 @@ class="sequence">
 
 <div class="pad-panel">
 
-<div class="pad red-pad"
-onclick="playLow()">
-</div>
+<button class="pad red-pad" type="button"
+onclick="playLow()" aria-label="Reproducir sonido grave"></button>
 
 <div class="label">
 🔴 Grave
@@ -794,9 +1123,8 @@ onclick="playLow()">
 
 <div class="pad-panel">
 
-<div class="pad blue-pad"
-onclick="playHigh()">
-</div>
+<button class="pad blue-pad" type="button"
+onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 
 <div class="label">
 🔵 Agudo
@@ -841,46 +1169,234 @@ async function exitFullscreen(){
 
 /* AUDIO */
 
-const ctx =
-new(window.AudioContext||
-window.webkitAudioContext)();
+const AUDIO_POOL_SIZE = 3;
+const toneFrequencies = { low: 130.81, high: 261.63, metronome: 1046.5 };
+const audioFiles = {
+  low: "audio/low.wav",
+  high: "audio/high.wav",
+  metronome: "audio/metronome.wav"
+};
+let audioContext = null;
+let audioOutput = null;
+let audioMasterGain = null;
+let toneVoices = null;
+const audioPlayers = {
+  low: createAudioPool(audioFiles.low),
+  high: createAudioPool(audioFiles.high),
+  metronome: createAudioPool(audioFiles.metronome)
+};
+const audioPlayerIndexes = { low: 0, high: 0, metronome: 0 };
 
-function playTone(freq,duration=0.15){
+function createAudioPool(source) {
+  return Array.from({ length: AUDIO_POOL_SIZE }, () => {
+    const audio = new Audio(source);
+    audio.preload = "auto";
+    audio.playsInline = true;
+    audio.volume = 0.8;
+    audio.addEventListener("ended", () => {
+      audio.currentTime = 0;
+    });
+    return audio;
+  });
+}
 
-const osc=ctx.createOscillator();
-const gain=ctx.createGain();
+function primeAudioPlayers() {
+  if ("audioSession" in navigator) {
+    try {
+      navigator.audioSession.type = "playback";
+    } catch (error) {
+      console.warn("El navegador no permitió configurar la sesión de audio.", error);
+    }
+  }
 
-osc.type="triangle";
-osc.frequency.value=freq;
+  Object.values(audioPlayers).flat().forEach(audio => {
+    audio.muted = true;
+    let request;
+    try {
+      request = audio.play();
+    } catch (error) {
+      audio.muted = false;
+      console.warn("No se pudo preparar un archivo de sonido.", error);
+      return;
+    }
 
-osc.connect(gain);
-gain.connect(ctx.destination);
+    if (!request || typeof request.then !== "function") {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+      return;
+    }
 
-gain.gain.setValueAtTime(
-0.4,
-ctx.currentTime
-);
+    request.then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+    }).catch(error => {
+      audio.muted = false;
+      if (error.name !== "NotAllowedError" && error.name !== "AbortError") {
+        console.warn("No se pudo preparar un archivo de sonido.", error);
+      }
+    });
+  });
+}
 
-gain.gain.exponentialRampToValueAtTime(
-0.001,
-ctx.currentTime+duration
-);
+function showAudioPlaybackError(error) {
+  console.warn("Safari no pudo reproducir el archivo de sonido.", error);
+  const message = document.getElementById("audioPlaybackError");
+  message.textContent = "No se pudo reproducir el sonido. Toca de nuevo Play o el pad.";
+  message.hidden = false;
+}
 
-osc.start();
-osc.stop(ctx.currentTime+duration);
+async function prepareLowLatencyAudio() {
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) return false;
+
+  try {
+    if (!audioContext) {
+      audioContext = new AudioContextConstructor();
+      audioOutput = audioContext.createGain();
+      audioOutput.gain.value = 0.72;
+      audioOutput.connect(audioContext.destination);
+      audioMasterGain = audioContext.createGain();
+      audioMasterGain.gain.value = 0.0001;
+      audioMasterGain.connect(audioOutput);
+    }
+
+    if ("audioSession" in navigator) {
+      try {
+        navigator.audioSession.type = "playback";
+      } catch (error) {
+        console.warn("El navegador no permitió configurar la sesión de audio.", error);
+      }
+    }
+
+    const resumeRequest = audioContext.state === "running"
+      ? Promise.resolve()
+      : audioContext.resume();
+    if (!toneVoices) {
+      toneVoices = Object.fromEntries(Object.entries(toneFrequencies).map(([name, frequency]) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = frequency;
+        gain.gain.value = 0;
+        oscillator.connect(gain);
+        gain.connect(audioMasterGain);
+        oscillator.start();
+        return [name, { oscillator, gain }];
+      }));
+
+      const noiseBuffer = audioContext.createBuffer(
+        1,
+        audioContext.sampleRate * 2,
+        audioContext.sampleRate
+      );
+      const noiseData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = audioContext.createBufferSource();
+      noise.buffer = noiseBuffer;
+      noise.loop = true;
+      const noiseFilter = audioContext.createBiquadFilter();
+      noiseFilter.type = "bandpass";
+      noiseFilter.frequency.value = 2200;
+      noiseFilter.Q.value = 0.7;
+      const noiseGain = audioContext.createGain();
+      noiseGain.gain.value = 0.003;
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(audioMasterGain);
+      noise.start();
+    }
+
+    await resumeRequest;
+    return audioContext.state === "running";
+  } catch (error) {
+    console.warn("No se pudo preparar el audio de baja latencia; se usará el audio nativo.", error);
+    return false;
+  }
+}
+
+function playTone(name) {
+  const voice = toneVoices?.[name];
+  if (!audioContext || !voice) return playAudioFile(name);
+  try {
+    if (audioContext.state !== "running") {
+      audioContext.resume().then(() => {
+        if (audioContext.state === "running") scheduleTone(voice, name);
+        else playAudioFile(name);
+      }).catch(error => {
+        console.warn("No se pudo reanudar el audio; se usará el reproductor nativo.", error);
+        playAudioFile(name);
+      });
+      return false;
+    }
+    scheduleTone(voice, name);
+    return true;
+  } catch (error) {
+    console.warn("No se pudo reproducir el tono; se usará el reproductor nativo.", error);
+    return playAudioFile(name);
+  }
+}
+
+function scheduleTone(voice, name) {
+  const now = audioContext.currentTime;
+  const gain = voice.gain.gain;
+  const duration = name === "metronome" ? 0.055 : 0.18;
+
+  audioMasterGain.gain.cancelScheduledValues(now);
+  audioMasterGain.gain.setTargetAtTime(0.15, now, 0.015);
+  audioMasterGain.gain.setTargetAtTime(0.0001, now + duration, 0.025);
+
+  gain.cancelScheduledValues(now);
+  gain.setValueAtTime(Math.max(gain.value, 0.0001), now);
+  gain.setTargetAtTime(0.65, now, 0.003);
+  gain.setTargetAtTime(0.0001, now + duration, 0.025);
+}
+
+function playAudioFile(name) {
+  const players = audioPlayers[name];
+  if (!players) return;
+
+  let index = audioPlayerIndexes[name] % players.length;
+  for (let offset = 0; offset < players.length; offset++) {
+    const candidateIndex = (index + offset) % players.length;
+    const candidate = players[candidateIndex];
+    if (candidate.paused && candidate.currentTime === 0) {
+      index = candidateIndex;
+      break;
+    }
+  }
+  const audio = players[index];
+  audioPlayerIndexes[name] = (index + 1) % players.length;
+
+  try {
+    const request = audio.play();
+    if (request && typeof request.then === "function") {
+      request.then(() => {
+        document.getElementById("audioPlaybackError").hidden = true;
+      }).catch(error => {
+        if (error.name !== "AbortError") showAudioPlaybackError(error);
+      });
+    }
+  } catch (error) {
+    showAudioPlaybackError(error);
+  }
 }
 
 function playLow(){
-playTone(120);
+playTone("low");
 }
 
 function playHigh(){
-playTone(550);
+playTone("high");
 }
 
 function metronomeClick(){
   if (metronomeSoundEnabled) {
-    playTone(1400,0.04);
+    playTone("metronome");
   }
 }
 
@@ -912,6 +1428,7 @@ function toggleMetronomeSound() {
 /* METRONOMO */
 
 let metro=null;
+let metroIsPlaybackSynced = false;
 
 
 function updateMetronomeButton() {
@@ -929,12 +1446,17 @@ function updateMetronomeButton() {
 
 function toggleMetronome() {
   if (metro) {
-    clearInterval(metro);
+    if (!metroIsPlaybackSynced) clearInterval(metro);
     metro = null;
+    metroIsPlaybackSynced = false;
+  } else if (isPlaying) {
+    metro = "playback";
+    metroIsPlaybackSynced = true;
   } else {
-    const interval = 60000 / currentTempo;
+    const interval = 60000 / Number(document.getElementById("tempo").value);
     metronomeClick();
     metro = setInterval(metronomeClick, interval);
+    metroIsPlaybackSynced = false;
   }
 
   updateMetronomeButton();
@@ -955,6 +1477,7 @@ function playCircle(i){
  if(i>=notes.length)i=0;
  const note=notes[i], colors=colorsOf(note), partMs=beatMs()/colors.length;
  note.classList.add("playing");
+ if(isPlaying && metroIsPlaybackSynced) metronomeClick();
  let k=0;
  function part(){
    if(!isPlaying)return;
@@ -982,9 +1505,13 @@ function nextCircle(){
 function startPlayback(){
  if(isPlaying)return;
  const n=document.querySelectorAll(".note"); if(!n.length)return;
+ if(isPlaying)return;
  isPlaying=true; playbackIndex=0;
  const b=document.getElementById("playBtn"); b.textContent="■ Stop"; b.classList.add("playing");
- if(!metro)metro=setInterval(metronomeClick,beatMs());
+ if(metro && !metroIsPlaybackSynced) clearInterval(metro);
+ metro="playback";
+ metroIsPlaybackSynced=true;
+ updateMetronomeButton();
  playCircle(0); nextCircle();
 }
 
@@ -995,14 +1522,16 @@ function stopPlayback(){
  playbackTimer=null; subdivisionTimer=null;
  document.querySelectorAll(".note").forEach(n=>n.classList.remove("playing","part-glow"));
  const b=document.getElementById("playBtn"); b.textContent="▶ Play"; b.classList.remove("playing");
- if(metro){clearInterval(metro);metro=null;}
+ if(metroIsPlaybackSynced){metro=null;metroIsPlaybackSynced=false;}
+ else if(metro){clearInterval(metro);metro=null;}
+ updateMetronomeButton();
 }
 
 function togglePlayback(){if(isPlaying)stopPlayback();else startPlayback();}
 
 document.getElementById("tempo").addEventListener("input",function(){
  document.getElementById("tempoValue").textContent=this.value;
- if(metro){clearInterval(metro);metro=setInterval(metronomeClick,beatMs());}
+ if(metro && !metroIsPlaybackSynced){clearInterval(metro);metro=setInterval(metronomeClick,beatMs());}
  if(isPlaying){
    if(playbackTimer)clearTimeout(playbackTimer);
    if(subdivisionTimer)clearTimeout(subdivisionTimer);
@@ -1460,6 +1989,39 @@ updatePadsButton();
 
 // Estado inicial del metrónomo: apagado = amarillo.
 updateMetronomeButton();
+
+document.getElementById("startButton").addEventListener("click", startGame);
+
+async function startGame() {
+  const overlay = document.getElementById("startOverlay");
+  const button = document.getElementById("startButton");
+  button.disabled = true;
+  button.textContent = "Preparando sonidos…";
+  const audioReady = prepareLowLatencyAudio();
+
+  try {
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(error => {
+        console.warn("El navegador no permitió activar la pantalla completa.", error);
+      });
+    }
+  } catch (error) {
+    console.warn("El navegador no permitió activar la pantalla completa.", error);
+  }
+
+  try {
+    if (screen.orientation?.lock) {
+      screen.orientation.lock("landscape").catch(error => {
+        console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
+      });
+    }
+  } catch (error) {
+    console.warn("El navegador no permitió bloquear la orientación horizontal.", error);
+  }
+
+  if (!await audioReady) primeAudioPlayers();
+  overlay.hidden = true;
+}
 </script>
 
 </body>
