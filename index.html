@@ -126,6 +126,18 @@ border:2px solid #ccc;
 .play-control{display:flex;align-items:center;padding:10px 14px;background:#22c55e;border-radius:16px;font-weight:700}
 #playBtn{border:0;background:none;color:white;font-size:18px;font-weight:700;cursor:pointer}
 #playBtn.playing{background:#ef4444;border-radius:10px;padding:5px 9px}
+.exit-fullscreen-btn{
+border:0;
+background:#eef2f7;
+color:#25432b;
+border-radius:12px;
+padding:10px 14px;
+font-size:15px;
+font-weight:700;
+cursor:pointer;
+white-space:nowrap;
+}
+.exit-fullscreen-btn:hover{background:#e2e8f0}
 .note.playing{z-index:2;animation:playGlow .22s ease-out}
 .note.part-glow{filter:brightness(1.6);transform:scale(1.08)}
 @keyframes playGlow{
@@ -743,6 +755,11 @@ value="90">
         </button>
       </div>
 
+<button id="exitFullscreenBtn" class="exit-fullscreen-btn"
+        onclick="exitFullscreen()" title="Salir de pantalla completa">
+  ⛶ Salir
+</button>
+
 </div>
 
 <!-- JUEGO -->
@@ -790,6 +807,37 @@ onclick="playHigh()">
 </div>
 
 <script>
+
+async function exitFullscreen(){
+  const fullscreenElement =
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement;
+
+  if(!fullscreenElement){
+    alert("El navegador no está en pantalla completa. Para cerrar la ventana, usa los controles del navegador o de la PDI.");
+    return;
+  }
+
+  const exit =
+    document.exitFullscreen ||
+    document.webkitExitFullscreen ||
+    document.mozCancelFullScreen ||
+    document.msExitFullscreen;
+
+  if(!exit){
+    alert("Este navegador no permite salir de pantalla completa desde la página. Usa el botón Atrás o los controles de la PDI.");
+    return;
+  }
+
+  try{
+    await exit.call(document);
+  }catch(error){
+    console.error("No se pudo salir de pantalla completa:", error);
+    alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
+  }
+}
 
 /* AUDIO */
 
