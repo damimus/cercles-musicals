@@ -986,6 +986,112 @@ width:90px;
       }
     }
 
+    .top-panel > * {
+      flex:0 1 auto;
+      min-width:0;
+    }
+
+    .metro-control {
+      min-width:0;
+    }
+
+    #tempo {
+      flex:1 1 70px;
+      min-width:0;
+    }
+
+    @media (max-width: 900px) {
+      .top-panel {
+        display:grid;
+        grid-template-columns:repeat(14, minmax(0, 1fr));
+        gap:4px;
+        padding:5px;
+        overflow:hidden;
+      }
+
+      .top-panel > * {
+        min-width:0;
+      }
+
+      .top-panel > .separator {
+        display:none;
+      }
+
+      .top-panel > .figure-btn {
+        grid-column:span 1;
+        justify-self:center;
+        width:min(100%, 38px);
+        height:clamp(28px, 5vw, 36px);
+        border-radius:9px;
+        font-size:clamp(14px, 2.4vw, 17px);
+      }
+
+      .top-panel > .color-btn {
+        grid-column:span 1;
+        justify-self:center;
+        width:min(100%, 28px);
+        height:auto;
+        aspect-ratio:1;
+      }
+
+      .top-panel > .play-control {
+        grid-column:span 2;
+        justify-content:center;
+        min-width:0;
+        padding:5px 3px;
+      }
+
+      #playBtn {
+        min-width:0;
+        white-space:nowrap;
+      }
+
+      .top-panel > .metro-control {
+        grid-column:span 6;
+        justify-content:space-between;
+        gap:3px;
+        min-width:0;
+        padding:4px;
+      }
+
+      #metronomeBtn {
+        flex:0 0 auto;
+      }
+
+      #tempoValue {
+        min-width:20px;
+      }
+
+      .metro-sound-btn {
+        min-width:0;
+        padding:0 3px;
+        white-space:nowrap;
+      }
+
+      .top-panel > .edit-tools {
+        grid-column:span 8;
+        justify-content:space-evenly;
+        min-width:0;
+        margin:0;
+        padding-left:3px;
+      }
+
+      .top-panel > .pads-toggle {
+        grid-column:span 2;
+        justify-content:center;
+        min-width:0;
+        margin:0;
+      }
+
+      .top-panel > .exit-fullscreen-btn {
+        grid-column:span 4;
+        justify-self:stretch;
+        min-width:0;
+        padding:5px 3px;
+        font-size:clamp(10px, 1.8vw, 14px);
+      }
+    }
+
 </style>
 </head>
 
@@ -1137,6 +1243,7 @@ onclick="playHigh()" aria-label="Reproducir sonido agudo"></button>
 <script>
 
 function exitFullscreen(){
+  const minimizeHelp = "La página no puede minimizar la ventana del navegador. Si la PDI está en modo kiosco, sal de ese modo desde sus controles del sistema.";
   const fullscreenElement =
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
@@ -1144,7 +1251,7 @@ function exitFullscreen(){
     document.msFullscreenElement;
 
   if(!fullscreenElement){
-    alert("Usa la barra superior del navegador para cerrar la pestaña.");
+    alert(minimizeHelp);
     return;
   }
 
@@ -1155,7 +1262,7 @@ function exitFullscreen(){
     document.msExitFullscreen;
 
   if(!exit){
-    alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
+    alert(minimizeHelp);
     return;
   }
 
@@ -1164,12 +1271,12 @@ function exitFullscreen(){
     if(result && typeof result.then === "function"){
       result.catch(error => {
         console.error("No se pudo salir de pantalla completa:", error);
-        alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
+        alert(minimizeHelp);
       });
     }
   }catch(error){
     console.error("No se pudo salir de pantalla completa:", error);
-    alert("No se pudo salir de pantalla completa. Usa los controles del navegador o de la PDI.");
+    alert(minimizeHelp);
   }
 }
 
